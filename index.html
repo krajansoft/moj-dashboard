@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mój Dashboard</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface-hover: #22263a;
+        --border: #2e3249;
+        --text: #e2e4f0;
+        --text-muted: #7b80a0;
+        --accent: #6c63ff;
+        --accent-dim: #3d3878;
+        --todo-color: #f59e0b;
+        --inprogress-color: #6c63ff;
+        --done-color: #10b981;
+        --tag-bg: #1e2235;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem 1.5rem;
+      }
+
+      header {
+        max-width: 1100px;
+        margin: 0 auto 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent), #a78bfa);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+      }
+
+      h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+
+      .header-meta {
+        text-align: right;
+      }
+
+      .date-display {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        text-transform: capitalize;
+      }
+
+      .stats-bar {
+        font-size: 0.8rem;
+        color: var(--accent);
+        margin-top: 0.2rem;
+      }
+
+      .board {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .column {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .column-header {
+        padding: 1rem 1.25rem 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .column-title {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .column-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+      }
+
+      .col-todo .column-dot {
+        background: var(--todo-color);
+      }
+      .col-inprog .column-dot {
+        background: var(--inprogress-color);
+      }
+      .col-done .column-dot {
+        background: var(--done-color);
+      }
+
+      .column-count {
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        padding: 0.15rem 0.6rem;
+      }
+
+      .task-list {
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        min-height: 80px;
+      }
+
+      .task-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.8rem 1rem;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        cursor: default;
+      }
+
+      .task-card:hover {
+        background: var(--surface-hover);
+        border-color: var(--accent-dim);
+      }
+
+      .task-top {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+      }
+
+      .task-check {
+        margin-top: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        flex-shrink: 0;
+        transition: border-color 0.15s;
+      }
+
+      .col-done .task-check {
+        border-color: var(--done-color);
+        background: var(--done-color);
+        position: relative;
+      }
+
+      .col-done .task-check::after {
+        content: "";
+        position: absolute;
+        left: 3px;
+        top: 1px;
+        width: 6px;
+        height: 4px;
+        border-left: 2px solid #fff;
+        border-bottom: 2px solid #fff;
+        transform: rotate(-45deg);
+      }
+
+      .task-text {
+        font-size: 0.875rem;
+        line-height: 1.45;
+        color: var(--text);
+      }
+
+      .col-done .task-text {
+        color: var(--text-muted);
+        text-decoration: line-through;
+        text-decoration-color: var(--border);
+      }
+
+      .task-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.55rem;
+        flex-wrap: wrap;
+      }
+
+      .tag {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 20px;
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+      }
+
+      .tag.p1 {
+        color: #f87171;
+        border-color: #7f1d1d;
+      }
+      .tag.p2 {
+        color: #fb923c;
+        border-color: #7c2d12;
+      }
+      .tag.p3 {
+        color: var(--accent);
+        border-color: var(--accent-dim);
+      }
+
+      .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        padding: 1.5rem 1rem;
+      }
+
+      footer {
+        max-width: 1100px;
+        margin: 2.5rem auto 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <h1>Mój Dashboard</h1>
+      </div>
+      <div class="header-meta">
+        <div class="date-display" id="dateDisplay"></div>
+        <div class="stats-bar" id="statsBar"></div>
+      </div>
+    </header>
+
+    <div class="board" id="board">
+      <div class="column col-todo">
+        <div class="column-header">
+          <div class="column-title">
+            <div class="column-dot"></div>
+            Do zrobienia
+          </div>
+          <span class="column-count" id="count-todo">0</span>
+        </div>
+        <div class="task-list" id="list-todo"></div>
+      </div>
+
+      <div class="column col-inprog">
+        <div class="column-header">
+          <div class="column-title">
+            <div class="column-dot"></div>
+            W trakcie
+          </div>
+          <span class="column-count" id="count-inprog">0</span>
+        </div>
+        <div class="task-list" id="list-inprog"></div>
+      </div>
+
+      <div class="column col-done">
+        <div class="column-header">
+          <div class="column-title">
+            <div class="column-dot"></div>
+            Zrobione
+          </div>
+          <span class="column-count" id="count-done">0</span>
+        </div>
+        <div class="task-list" id="list-done"></div>
+      </div>
+    </div>
+
+    <footer>Mój Dashboard &copy; <span id="year"></span></footer>
+
+    <script>
+      const tasks = {
+        todo: [
+          { text: "Zaprojektować logo aplikacji", priority: "p2" },
+          { text: "Napisać testy jednostkowe", priority: "p1" },
+          { text: "Skonfigurować środowisko CI/CD", priority: "p2" },
+          { text: "Uzupełnić dokumentację API", priority: "p3" },
+          { text: "Przejrzeć feedback od użytkowników", priority: "p3" },
+        ],
+        inprog: [
+          { text: "Zbudować szkielet strony HTML", priority: "p1" },
+          { text: "Podłączyć Todoist przez MCP", priority: "p2" },
+        ],
+        done: [
+          { text: "Skonfigurować projekt w Todoist", priority: "p3" },
+          { text: "Zaplanować etapy pracy", priority: "p2" },
+          { text: "Stworzyć repozytorium git", priority: "p3" },
+        ],
+      };
+
+      function makeTaskCard(task) {
+        const card = document.createElement("div");
+        card.className = "task-card";
+
+        const top = document.createElement("div");
+        top.className = "task-top";
+
+        const check = document.createElement("div");
+        check.className = "task-check";
+
+        const text = document.createElement("span");
+        text.className = "task-text";
+        text.textContent = task.text;
+
+        top.append(check, text);
+
+        const meta = document.createElement("div");
+        meta.className = "task-meta";
+
+        const tag = document.createElement("span");
+        const priority = ["p1", "p2", "p3", "p4"].includes(task.priority)
+          ? task.priority
+          : "p4";
+        tag.className = `tag ${priority}`;
+        tag.textContent = priority.toUpperCase();
+
+        meta.append(tag);
+        card.append(top, meta);
+        return card;
+      }
+
+      function renderTasks(listId, countId, items) {
+        const list = document.getElementById(listId);
+        const count = document.getElementById(countId);
+        if (!list || !count) return;
+        count.textContent = items.length;
+        list.replaceChildren();
+
+        if (items.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.textContent = "Brak zadań";
+          list.append(empty);
+          return;
+        }
+
+        list.append(...items.map(makeTaskCard));
+      }
+
+      function renderDate() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("pl-PL", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        document.getElementById("dateDisplay").textContent = dateStr;
+        document.getElementById("year").textContent = now.getFullYear();
+
+        const total =
+          tasks.todo.length + tasks.inprog.length + tasks.done.length;
+        const done = tasks.done.length;
+        document.getElementById("statsBar").textContent =
+          `${done} z ${total} zadań ukończonych`;
+      }
+
+      renderTasks("list-todo", "count-todo", tasks.todo);
+      renderTasks("list-inprog", "count-inprog", tasks.inprog);
+      renderTasks("list-done", "count-done", tasks.done);
+      renderDate();
+    </script>
+  </body>
+</html>
