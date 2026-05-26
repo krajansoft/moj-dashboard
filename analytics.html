@@ -1,0 +1,1236 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analityka — Mój Dashboard</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface-hover: #22263a;
+        --border: #2e3249;
+        --text: #e2e4f0;
+        --text-muted: #7b80a0;
+        --accent: #6c63ff;
+        --accent-dim: #3d3878;
+        --backlog-color: #f59e0b;
+        --inprogress-color: #6c63ff;
+        --bugs-color: #f87171;
+        --done-color: #10b981;
+        --tag-bg: #1e2235;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem 1.5rem;
+      }
+
+      /* --- Setup screen --- */
+      #setup-screen {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 17, 23, 0.95);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      #setup-screen.visible {
+        display: flex;
+      }
+      .setup-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        width: min(420px, 90vw);
+      }
+      .setup-card h2 {
+        font-size: 1.15rem;
+        margin-bottom: 0.5rem;
+      }
+      .setup-card p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 1.25rem;
+        line-height: 1.5;
+      }
+      .setup-card input {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.85rem;
+        padding: 0.6rem 0.9rem;
+        margin-bottom: 1rem;
+        outline: none;
+      }
+      .setup-card input:focus {
+        border-color: var(--accent);
+      }
+      .setup-card button {
+        width: 100%;
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.65rem;
+        cursor: pointer;
+      }
+      .setup-card button:hover {
+        opacity: 0.9;
+      }
+      .setup-error {
+        font-size: 0.8rem;
+        color: var(--bugs-color);
+        margin-top: 0.5rem;
+        display: none;
+      }
+
+      /* --- Header --- */
+      header {
+        max-width: 1200px;
+        margin: 0 auto 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .logo-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent), #a78bfa);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+      }
+      h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      /* --- Navigation --- */
+      .main-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .nav-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .nav-link:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .nav-link.active {
+        background: var(--surface-hover);
+        color: var(--accent);
+      }
+
+      .btn-reset {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-reset:hover {
+        border-color: var(--accent-dim);
+        color: var(--text);
+      }
+
+      /* --- Loading --- */
+      .loading-overlay {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+        padding: 5rem 2rem;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
+      .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 1rem;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* --- Main content --- */
+      .analytics-main {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* --- Summary cards --- */
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+      }
+      .stat-label {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.6rem;
+      }
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .stat-value.accent {
+        color: var(--accent);
+      }
+      .stat-value.green {
+        color: var(--done-color);
+      }
+      .stat-sub {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.4rem;
+      }
+
+      /* --- Section block --- */
+      .section-block {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+      .section-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      /* --- Table --- */
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+      }
+      th {
+        text-align: left;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--text-muted);
+        padding: 0 0.75rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      td {
+        padding: 0.8rem 0.75rem;
+        border-bottom: 1px solid rgba(46, 50, 73, 0.5);
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      tbody tr:hover td {
+        background: rgba(34, 38, 58, 0.5);
+      }
+      .task-name-cell {
+        max-width: 260px;
+      }
+      .task-name-text {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 260px;
+      }
+      .num-cell {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* --- Status badges --- */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.68rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 20px;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+      .status-done {
+        color: var(--done-color);
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+      .status-inprog {
+        color: var(--inprogress-color);
+        background: rgba(108, 99, 255, 0.1);
+        border: 1px solid rgba(108, 99, 255, 0.2);
+      }
+      .status-bugs {
+        color: var(--bugs-color);
+        background: rgba(248, 113, 113, 0.1);
+        border: 1px solid rgba(248, 113, 113, 0.2);
+      }
+      .status-backlog {
+        color: var(--backlog-color);
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+      }
+
+      /* --- Tag lists --- */
+      .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        max-width: 200px;
+      }
+      .tag-item {
+        font-size: 0.65rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 10px;
+        background: var(--tag-bg);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      /* --- Chart --- */
+      .chart-outer {
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+      }
+      .chart-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.75rem;
+        height: 200px;
+        min-width: max-content;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0;
+      }
+      .bar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 80px;
+        flex-shrink: 0;
+        height: 100%;
+        justify-content: flex-end;
+      }
+      .bar-val {
+        font-size: 0.68rem;
+        color: var(--accent);
+        margin-bottom: 0.3rem;
+        white-space: nowrap;
+      }
+      .bar {
+        width: 100%;
+        border-radius: 6px 6px 0 0;
+        background: var(--accent);
+        transition: background 0.15s;
+        min-height: 4px;
+        cursor: default;
+      }
+      .bar:hover {
+        background: #a78bfa;
+      }
+      .bar-label {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 100%;
+      }
+
+      /* --- Rankings --- */
+      .rankings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+      .rank-section-title {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.75rem;
+      }
+      .rank-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .rank-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.55rem 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .rank-pos {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        width: 1.5rem;
+        text-align: center;
+        flex-shrink: 0;
+        font-weight: 600;
+      }
+      .rank-name {
+        font-size: 0.82rem;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .rank-count {
+        font-size: 0.75rem;
+        color: var(--accent);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .empty-rank {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        padding: 0.75rem;
+        text-align: center;
+      }
+
+      /* --- Empty states --- */
+      .empty-state {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
+
+      /* --- Toast --- */
+      #toast {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.65rem 1.1rem;
+        font-size: 0.85rem;
+        color: var(--text);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        pointer-events: none;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      #toast.toast-error {
+        border-color: #7f1d1d;
+        color: var(--bugs-color);
+      }
+
+      footer {
+        max-width: 1200px;
+        margin: 2.5rem auto 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+
+      /* --- Responsive --- */
+      @media (max-width: 700px) {
+        .rankings-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 480px) {
+        body {
+          padding: 1rem;
+        }
+        h1 {
+          font-size: 1.3rem;
+        }
+        .stat-value {
+          font-size: 1.4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Setup screen -->
+    <div id="setup-screen">
+      <div class="setup-card">
+        <h2>⚡ Mój Dashboard</h2>
+        <p>
+          Podaj token Todoist API, żeby załadować dane analityczne.<br />
+          Znajdziesz go w:
+          <strong>Todoist → Ustawienia → Integracje → Token API</strong>.<br />
+          Token jest zapisywany tylko lokalnie w przeglądarce.
+        </p>
+        <input
+          id="token-input"
+          type="password"
+          placeholder="Wklej token API…"
+        />
+        <button id="token-save">Zapisz i załaduj</button>
+        <div class="setup-error" id="token-error">
+          Nie udało się pobrać danych. Sprawdź token.
+        </div>
+      </div>
+    </div>
+
+    <header>
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <h1>Mój Dashboard</h1>
+      </div>
+      <nav class="main-nav">
+        <a href="index.html" class="nav-link">Dashboard</a>
+        <a href="analytics.html" class="nav-link active">Analityka</a>
+      </nav>
+      <div>
+        <button class="btn-reset" id="btn-reset">Zmień token</button>
+      </div>
+    </header>
+
+    <!-- Loading state -->
+    <div class="loading-overlay" id="loading" style="display: none">
+      <div class="loading-spinner"></div>
+      <p>Ładowanie danych z Todoist…</p>
+    </div>
+
+    <!-- Analytics content -->
+    <main class="analytics-main" id="analytics-content" style="display: none">
+      <!-- A: Summary cards -->
+      <div class="summary-grid">
+        <div class="stat-card">
+          <div class="stat-label">Taski z danymi</div>
+          <div class="stat-value green" id="stat-tasks">—</div>
+          <div class="stat-sub" id="stat-sessions-total">— sesji łącznie</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Łączny koszt</div>
+          <div class="stat-value accent" id="stat-cost-pln">—</div>
+          <div class="stat-sub" id="stat-cost-usd">— USD</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Łączne tokeny</div>
+          <div class="stat-value" id="stat-tokens">—</div>
+          <div class="stat-sub" id="stat-tokens-sub">wszystkich sesji</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Średni koszt / task</div>
+          <div class="stat-value" id="stat-avg-pln">—</div>
+          <div class="stat-sub" id="stat-avg-tokens">— tokenów / task</div>
+        </div>
+      </div>
+
+      <!-- B: Task history table -->
+      <div class="section-block">
+        <div class="section-title">
+          <span>📋</span> Historia tasków
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nazwa taska</th>
+                <th>Status</th>
+                <th>Sesji</th>
+                <th class="num-cell">Tokeny</th>
+                <th class="num-cell">Koszt PLN</th>
+                <th>Skille</th>
+                <th>Agenci</th>
+                <th>Ostatnia aktywność</th>
+              </tr>
+            </thead>
+            <tbody id="tasks-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- C: Cost chart -->
+      <div class="section-block">
+        <div class="section-title">
+          <span>📊</span> Koszt per task (PLN)
+        </div>
+        <div class="chart-outer">
+          <div class="chart-bars" id="chart-bars"></div>
+        </div>
+      </div>
+
+      <!-- D: Rankings -->
+      <div class="section-block">
+        <div class="section-title">
+          <span>🏆</span> Top skille i agenci
+        </div>
+        <div class="rankings-grid">
+          <div>
+            <div class="rank-section-title">📚 Skille (liczba wywołań)</div>
+            <div class="rank-list" id="rank-skills"></div>
+          </div>
+          <div>
+            <div class="rank-section-title">🤖 Agenci (liczba tasków)</div>
+            <div class="rank-list" id="rank-agents"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer" style="display: none">
+      Mój Dashboard &copy; <span id="year"></span>
+    </footer>
+    <div id="toast"></div>
+
+    <script>
+      const PROJECT_ID = "6gj92jFJMwm2RmFq";
+      const SECTIONS = {
+        "6gj92pW5rVJc9vcq": {
+          name: "Backlog",
+          css: "status-backlog",
+          icon: "📋",
+        },
+        "6gj92pQqwMR2C3jq": {
+          name: "W trakcie",
+          css: "status-inprog",
+          icon: "🔄",
+        },
+        "6gj92pQjFpC8gfrH": {
+          name: "Bugi",
+          css: "status-bugs",
+          icon: "🐛",
+        },
+        "6gj92pRv86Mh4Rvq": {
+          name: "Zrobione",
+          css: "status-done",
+          icon: "✅",
+        },
+      };
+      const STORAGE_KEY = "todoist_token";
+
+      const getToken = () => localStorage.getItem(STORAGE_KEY);
+      const saveToken = (t) => localStorage.setItem(STORAGE_KEY, t);
+      const clearToken = () => localStorage.removeItem(STORAGE_KEY);
+
+      // Toast
+      let toastTimer = null;
+      function showToast(msg, isError = false) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = isError ? "toast-error show" : "show";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 3000);
+      }
+
+      // API
+      async function apiGet(token, path) {
+        const res = await fetch(`https://api.todoist.com/api/v1/${path}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.results ?? []);
+      }
+
+      // Parse cost comment
+      function parseCostComment(content) {
+        if (!content || !content.startsWith("💰 Koszt sesji")) return null;
+        const lines = content.split("\n");
+        const result = {
+          sessionNum: null,
+          date: "",
+          inputTokens: 0,
+          outputTokens: 0,
+          cacheWriteTokens: 0,
+          cacheReadTokens: 0,
+          totalTokens: 0,
+          costUSD: 0,
+          costPLN: 0,
+          model: "",
+          skills: [],
+          agents: [],
+        };
+
+        // Header: "💰 Koszt sesji #1 — 26 maja 2026" or "💰 Koszt sesji 26 maja 2026"
+        const numM = lines[0].match(/#(\d+)/);
+        if (numM) result.sessionNum = parseInt(numM[1]);
+        const dateM = lines[0].match(/[—\-]\s*(.+?)(?:\s*\(|$)/);
+        if (dateM) result.date = dateM[1].trim();
+
+        for (const line of lines) {
+          // New format: "  Input:       12345 | Output:      3456"
+          const inputOutputM = line.match(/Input:\s*~?([\d,\s]+)\s*\|\s*Output:\s*~?([\d,\s]+)/);
+          if (inputOutputM) {
+            result.inputTokens = parseInt(inputOutputM[1].replace(/[,\s]/g, ""));
+            result.outputTokens = parseInt(inputOutputM[2].replace(/[,\s]/g, ""));
+          }
+
+          // New format: "  Cache write: 123 | Cache read:  456"
+          const cacheM = line.match(/Cache write:\s*~?([\d,\s]+)\s*\|\s*Cache read:\s*~?([\d,\s]+)/);
+          if (cacheM) {
+            result.cacheWriteTokens = parseInt(cacheM[1].replace(/[,\s]/g, ""));
+            result.cacheReadTokens = parseInt(cacheM[2].replace(/[,\s]/g, ""));
+          }
+
+          // New format: "  Łącznie:    12345"
+          const totalNewM = line.match(/Łącznie:\s*~?([\d,\s]+)/);
+          if (totalNewM && result.totalTokens === 0) {
+            result.totalTokens = parseInt(totalNewM[1].replace(/[,\s]/g, ""));
+          }
+
+          // Old format: "📊 Tokeny: ~245,000 in / ~28,000 out / ~273,000 łącznie"
+          const tokM = line.match(
+            /Tokeny:.*?~?([\d,]+)\s*in.*?~?([\d,]+)\s*out.*?~?([\d,]+)/,
+          );
+          if (tokM) {
+            result.inputTokens = parseInt(tokM[1].replace(/,/g, ""));
+            result.outputTokens = parseInt(tokM[2].replace(/,/g, ""));
+            result.totalTokens = parseInt(tokM[3].replace(/,/g, ""));
+          }
+
+          // Cost: "💵 Koszt: ~$1.16 (~4.63 PLN)" or "$1.16 (~4.63 PLN)"
+          const costM = line.match(/Koszt:.*?~?\$~?([\d.]+).*?~?([\d.]+)\s*PLN/);
+          if (costM) {
+            result.costUSD = parseFloat(costM[1]);
+            result.costPLN = parseFloat(costM[2]);
+          }
+
+          // Model: "🤖 Model: claude-sonnet-4-6"
+          const modelM = line.match(/^🤖\s*Model:\s*(.+)/);
+          if (modelM) result.model = modelM[1].trim();
+
+          // Skills: "📚 Skille: /tryb-kodowania (x3), /git-commit (x1)"
+          const skillM = line.match(/Skille:\s*(.+)/);
+          if (skillM) {
+            const raw = skillM[1].trim();
+            if (raw !== "brak") {
+              result.skills = raw
+                .split(",")
+                .map((s) => {
+                  const m = s.trim().match(/^(\/\S+)/);
+                  return m ? m[1] : s.trim();
+                })
+                .filter(Boolean);
+            }
+          }
+
+          // Agents: "🤖 Agenci: kod-reviewer" (line starting with 🤖 Agenci, not Model)
+          const agentM = line.match(/Agenci:\s*(.+)/);
+          if (agentM) {
+            const raw = agentM[1].trim();
+            if (raw !== "brak") {
+              result.agents = raw
+                .split(",")
+                .map((a) => a.trim())
+                .filter(Boolean);
+            }
+          }
+        }
+
+        // Derive totalTokens if still 0 and we have input/output
+        if (result.totalTokens === 0 && (result.inputTokens || result.outputTokens)) {
+          result.totalTokens = result.inputTokens + result.outputTokens + result.cacheWriteTokens + result.cacheReadTokens;
+        }
+
+        return result;
+      }
+
+      // Format helpers
+      function fmtTokens(n) {
+        if (!n) return "0";
+        if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+        if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+        return String(n);
+      }
+      function fmtPLN(n) {
+        return `${(n || 0).toFixed(2)} zł`;
+      }
+      function fmtDate(iso) {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleDateString("pl-PL", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      // Load and aggregate data
+      async function loadData(token) {
+        const tasks = await apiGet(token, `tasks?project_id=${PROJECT_ID}`);
+
+        const enriched = await Promise.all(
+          tasks.map(async (task) => {
+            try {
+              const comments = await apiGet(
+                token,
+                `comments?task_id=${task.id}`,
+              );
+              const costParsed = comments
+                .filter((c) => c.content?.startsWith("💰 Koszt sesji"))
+                .map((c) => parseCostComment(c.content))
+                .filter(Boolean);
+
+              if (costParsed.length === 0) return null;
+
+              const totalTokens = costParsed.reduce(
+                (s, c) => s + c.totalTokens,
+                0,
+              );
+              const totalInputTokens = costParsed.reduce(
+                (s, c) => s + c.inputTokens,
+                0,
+              );
+              const totalOutputTokens = costParsed.reduce(
+                (s, c) => s + c.outputTokens,
+                0,
+              );
+              const totalCacheWriteTokens = costParsed.reduce(
+                (s, c) => s + c.cacheWriteTokens,
+                0,
+              );
+              const totalCacheReadTokens = costParsed.reduce(
+                (s, c) => s + c.cacheReadTokens,
+                0,
+              );
+              const totalCostUSD = costParsed.reduce(
+                (s, c) => s + c.costUSD,
+                0,
+              );
+              const totalCostPLN = costParsed.reduce(
+                (s, c) => s + c.costPLN,
+                0,
+              );
+
+              const skillCounts = {};
+              const agentCounts = {};
+              const modelCounts = {};
+              for (const c of costParsed) {
+                for (const s of c.skills)
+                  skillCounts[s] = (skillCounts[s] || 0) + 1;
+                for (const a of c.agents)
+                  agentCounts[a] = (agentCounts[a] || 0) + 1;
+                if (c.model)
+                  modelCounts[c.model] = (modelCounts[c.model] || 0) + 1;
+              }
+
+              const lastCmt = comments.at(-1);
+
+              return {
+                task,
+                sessions: costParsed,
+                totalSessions: costParsed.length,
+                totalTokens,
+                totalInputTokens,
+                totalOutputTokens,
+                totalCacheWriteTokens,
+                totalCacheReadTokens,
+                totalCostUSD,
+                totalCostPLN,
+                skillCounts,
+                agentCounts,
+                modelCounts,
+                lastActivity: lastCmt?.posted_at ?? null,
+              };
+            } catch {
+              return null;
+            }
+          }),
+        );
+
+        return enriched.filter(Boolean);
+      }
+
+      // Render summary
+      function renderSummary(items) {
+        const totalTasks = items.length;
+        const totalSessions = items.reduce((s, i) => s + i.totalSessions, 0);
+        const totalCostPLN = items.reduce((s, i) => s + i.totalCostPLN, 0);
+        const totalCostUSD = items.reduce((s, i) => s + i.totalCostUSD, 0);
+        const totalTokens = items.reduce((s, i) => s + i.totalTokens, 0);
+        const avgCostPLN = totalTasks > 0 ? totalCostPLN / totalTasks : 0;
+        const avgTokens =
+          totalTasks > 0 ? Math.round(totalTokens / totalTasks) : 0;
+
+        document.getElementById("stat-tasks").textContent = totalTasks;
+        document.getElementById(
+          "stat-sessions-total",
+        ).textContent = `${totalSessions} sesji łącznie`;
+        document.getElementById("stat-cost-pln").textContent =
+          fmtPLN(totalCostPLN);
+        document.getElementById(
+          "stat-cost-usd",
+        ).textContent = `$${totalCostUSD.toFixed(2)} USD`;
+        document.getElementById("stat-tokens").textContent =
+          fmtTokens(totalTokens);
+        document.getElementById("stat-avg-pln").textContent =
+          fmtPLN(avgCostPLN);
+        document.getElementById(
+          "stat-avg-tokens",
+        ).textContent = `${fmtTokens(avgTokens)} tokenów / task`;
+      }
+
+      // Render table
+      function renderTable(items) {
+        const tbody = document.getElementById("tasks-tbody");
+        tbody.replaceChildren();
+
+        if (items.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 8;
+          td.className = "empty-state";
+          td.textContent = "Brak tasków z danymi kosztowymi";
+          tr.append(td);
+          tbody.append(tr);
+          return;
+        }
+
+        const sorted = [...items].sort(
+          (a, b) => b.totalCostPLN - a.totalCostPLN,
+        );
+
+        for (const item of sorted) {
+          const sec = SECTIONS[item.task.section_id];
+          const tr = document.createElement("tr");
+
+          // Name
+          const tdName = document.createElement("td");
+          tdName.className = "task-name-cell";
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "task-name-text";
+          nameSpan.textContent = item.task.content;
+          nameSpan.title = item.task.content;
+          tdName.append(nameSpan);
+
+          // Status
+          const tdStatus = document.createElement("td");
+          if (sec) {
+            const badge = document.createElement("span");
+            badge.className = `status-badge ${sec.css}`;
+            badge.textContent = `${sec.icon} ${sec.name}`;
+            tdStatus.append(badge);
+          }
+
+          // Sessions
+          const tdSessions = document.createElement("td");
+          tdSessions.textContent = item.totalSessions;
+
+          // Tokens
+          const tdTokens = document.createElement("td");
+          tdTokens.className = "num-cell";
+          tdTokens.textContent = fmtTokens(item.totalTokens);
+          if (item.totalInputTokens || item.totalOutputTokens) {
+            const parts = [`in: ${fmtTokens(item.totalInputTokens)}`, `out: ${fmtTokens(item.totalOutputTokens)}`];
+            if (item.totalCacheReadTokens) parts.push(`cache: ${fmtTokens(item.totalCacheReadTokens)}`);
+            tdTokens.title = parts.join(" | ");
+          }
+
+          // Cost PLN
+          const tdCost = document.createElement("td");
+          tdCost.className = "num-cell";
+          tdCost.textContent = fmtPLN(item.totalCostPLN);
+
+          // Skills
+          const tdSkills = document.createElement("td");
+          const skillKeys = Object.keys(item.skillCounts);
+          if (skillKeys.length > 0) {
+            const wrap = document.createElement("div");
+            wrap.className = "tag-list";
+            for (const s of skillKeys.slice(0, 4)) {
+              const tag = document.createElement("span");
+              tag.className = "tag-item";
+              tag.textContent = s;
+              wrap.append(tag);
+            }
+            if (skillKeys.length > 4) {
+              const more = document.createElement("span");
+              more.className = "tag-item";
+              more.textContent = `+${skillKeys.length - 4}`;
+              wrap.append(more);
+            }
+            tdSkills.append(wrap);
+          } else {
+            tdSkills.textContent = "—";
+            tdSkills.style.color = "var(--text-muted)";
+          }
+
+          // Agents
+          const tdAgents = document.createElement("td");
+          const agentKeys = Object.keys(item.agentCounts);
+          if (agentKeys.length > 0) {
+            const wrap = document.createElement("div");
+            wrap.className = "tag-list";
+            for (const a of agentKeys) {
+              const tag = document.createElement("span");
+              tag.className = "tag-item";
+              tag.textContent = a;
+              wrap.append(tag);
+            }
+            tdAgents.append(wrap);
+          } else {
+            tdAgents.textContent = "—";
+            tdAgents.style.color = "var(--text-muted)";
+          }
+
+          // Date
+          const tdDate = document.createElement("td");
+          tdDate.textContent = fmtDate(item.lastActivity);
+          tdDate.style.whiteSpace = "nowrap";
+          tdDate.style.color = "var(--text-muted)";
+          tdDate.style.fontSize = "0.8rem";
+
+          tr.append(
+            tdName,
+            tdStatus,
+            tdSessions,
+            tdTokens,
+            tdCost,
+            tdSkills,
+            tdAgents,
+            tdDate,
+          );
+          tbody.append(tr);
+        }
+      }
+
+      // Render chart
+      function renderChart(items) {
+        const container = document.getElementById("chart-bars");
+        container.replaceChildren();
+
+        if (items.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.style.width = "100%";
+          empty.textContent = "Brak danych do wykresu";
+          container.append(empty);
+          return;
+        }
+
+        const sorted = [...items].sort(
+          (a, b) => b.totalCostPLN - a.totalCostPLN,
+        );
+        const maxVal = Math.max(...sorted.map((i) => i.totalCostPLN));
+        const maxBarH = 160;
+
+        for (const item of sorted) {
+          const wrap = document.createElement("div");
+          wrap.className = "bar-wrap";
+
+          const val = document.createElement("div");
+          val.className = "bar-val";
+          val.textContent = fmtPLN(item.totalCostPLN);
+
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          const h =
+            maxVal > 0
+              ? Math.max(4, (item.totalCostPLN / maxVal) * maxBarH)
+              : 4;
+          bar.style.height = `${h}px`;
+          bar.title = `${item.task.content}\n${fmtPLN(item.totalCostPLN)} | ${item.totalSessions} sesji | ${fmtTokens(item.totalTokens)} tokenów`;
+
+          const label = document.createElement("div");
+          label.className = "bar-label";
+          const name = item.task.content
+            .replace(/^[⭐🔧📋]/u, "")
+            .trim();
+          label.textContent = name.length > 12 ? name.slice(0, 12) + "…" : name;
+          label.title = item.task.content;
+
+          wrap.append(val, bar, label);
+          container.append(wrap);
+        }
+      }
+
+      // Render rankings
+      function renderRankings(items) {
+        const skillTotals = {};
+        const agentTotals = {};
+        for (const item of items) {
+          for (const [k, v] of Object.entries(item.skillCounts))
+            skillTotals[k] = (skillTotals[k] || 0) + v;
+          for (const [k, v] of Object.entries(item.agentCounts))
+            agentTotals[k] = (agentTotals[k] || 0) + v;
+        }
+
+        function buildRank(containerId, counts) {
+          const el = document.getElementById(containerId);
+          el.replaceChildren();
+          const sorted = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 8);
+          if (sorted.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "empty-rank";
+            empty.textContent = "Brak danych";
+            el.append(empty);
+            return;
+          }
+          sorted.forEach(([name, count], i) => {
+            const row = document.createElement("div");
+            row.className = "rank-item";
+            const pos = document.createElement("span");
+            pos.className = "rank-pos";
+            pos.textContent = `#${i + 1}`;
+            const nameEl = document.createElement("span");
+            nameEl.className = "rank-name";
+            nameEl.textContent = name;
+            nameEl.title = name;
+            const countEl = document.createElement("span");
+            countEl.className = "rank-count";
+            countEl.textContent = `${count}×`;
+            row.append(pos, nameEl, countEl);
+            el.append(row);
+          });
+        }
+
+        buildRank("rank-skills", skillTotals);
+        buildRank("rank-agents", agentTotals);
+      }
+
+      // Show analytics content
+      function render(items) {
+        renderSummary(items);
+        renderTable(items);
+        renderChart(items);
+        renderRankings(items);
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("analytics-content").style.display = "block";
+        document.getElementById("footer").style.display = "block";
+        document.getElementById("year").textContent =
+          new Date().getFullYear();
+      }
+
+      // Setup screen
+      const setupScreen = document.getElementById("setup-screen");
+      function showSetup() {
+        setupScreen.classList.add("visible");
+        document.getElementById("token-error").style.display = "none";
+        document.getElementById("token-input").value = "";
+        document.getElementById("loading").style.display = "none";
+      }
+      function hideSetup() {
+        setupScreen.classList.remove("visible");
+      }
+
+      document
+        .getElementById("token-save")
+        .addEventListener("click", async () => {
+          const token = document
+            .getElementById("token-input")
+            .value.trim();
+          if (!token) return;
+          hideSetup();
+          document.getElementById("loading").style.display = "block";
+          try {
+            const items = await loadData(token);
+            saveToken(token);
+            render(items);
+          } catch (err) {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById(
+              "token-error",
+            ).textContent = `Błąd: ${err.message}`;
+            document.getElementById("token-error").style.display = "block";
+            showSetup();
+          }
+        });
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        clearToken();
+        document.getElementById("analytics-content").style.display = "none";
+        document.getElementById("footer").style.display = "none";
+        showSetup();
+      });
+
+      // Boot
+      (async () => {
+        const token = getToken();
+        if (!token) {
+          showSetup();
+          return;
+        }
+        document.getElementById("loading").style.display = "block";
+        try {
+          const items = await loadData(token);
+          render(items);
+        } catch (err) {
+          showToast(`Błąd ładowania: ${err.message}`, true);
+          showSetup();
+        }
+      })();
+    </script>
+  </body>
+</html>

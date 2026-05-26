@@ -460,6 +460,32 @@
         color: var(--text-muted);
         font-size: 0.75rem;
       }
+
+      /* --- Navigation --- */
+      .main-nav {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+      .nav-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .nav-link:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+      }
+      .nav-link.active {
+        background: var(--surface-hover);
+        color: var(--accent);
+      }
     </style>
   </head>
   <body>
@@ -490,6 +516,10 @@
         <div class="logo-icon">⚡</div>
         <h1>Mój Dashboard</h1>
       </div>
+      <nav class="main-nav">
+        <a href="index.html" class="nav-link active">Dashboard</a>
+        <a href="analytics.html" class="nav-link">Analityka</a>
+      </nav>
       <div class="header-right">
         <div class="header-meta">
           <div class="date-display" id="dateDisplay"></div>
