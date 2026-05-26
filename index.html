@@ -22,8 +22,9 @@
         --text-muted: #7b80a0;
         --accent: #6c63ff;
         --accent-dim: #3d3878;
-        --todo-color: #f59e0b;
+        --backlog-color: #f59e0b;
         --inprogress-color: #6c63ff;
+        --bugs-color: #f87171;
         --done-color: #10b981;
         --tag-bg: #1e2235;
       }
@@ -40,8 +41,74 @@
         padding: 2rem 1.5rem;
       }
 
+      /* --- Setup screen --- */
+      #setup-screen {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 17, 23, 0.95);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+      }
+      #setup-screen.visible {
+        display: flex;
+      }
+      .setup-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        width: min(420px, 90vw);
+      }
+      .setup-card h2 {
+        font-size: 1.15rem;
+        margin-bottom: 0.5rem;
+      }
+      .setup-card p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 1.25rem;
+        line-height: 1.5;
+      }
+      .setup-card input {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.85rem;
+        padding: 0.6rem 0.9rem;
+        margin-bottom: 1rem;
+        outline: none;
+      }
+      .setup-card input:focus {
+        border-color: var(--accent);
+      }
+      .setup-card button {
+        width: 100%;
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.65rem;
+        cursor: pointer;
+      }
+      .setup-card button:hover {
+        opacity: 0.9;
+      }
+      .setup-error {
+        font-size: 0.8rem;
+        color: var(--bugs-color);
+        margin-top: 0.5rem;
+        display: none;
+      }
+
+      /* --- Header --- */
       header {
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 0 auto 2.5rem;
         display: flex;
         align-items: center;
@@ -71,7 +138,12 @@
         font-size: 1.6rem;
         font-weight: 700;
         letter-spacing: -0.02em;
-        color: var(--text);
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
       }
 
       .header-meta {
@@ -90,11 +162,27 @@
         margin-top: 0.2rem;
       }
 
+      .btn-reset {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-reset:hover {
+        border-color: var(--accent-dim);
+        color: var(--text);
+      }
+
+      /* --- Board --- */
       .board {
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 0 auto;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 1.25rem;
       }
 
@@ -127,11 +215,14 @@
         border-radius: 50%;
       }
 
-      .col-todo .column-dot {
-        background: var(--todo-color);
+      .col-backlog .column-dot {
+        background: var(--backlog-color);
       }
       .col-inprog .column-dot {
         background: var(--inprogress-color);
+      }
+      .col-bugs .column-dot {
+        background: var(--bugs-color);
       }
       .col-done .column-dot {
         background: var(--done-color);
@@ -155,6 +246,7 @@
         min-height: 80px;
       }
 
+      /* --- Task card --- */
       .task-card {
         background: var(--bg);
         border: 1px solid var(--border);
@@ -163,7 +255,6 @@
         transition:
           background 0.15s,
           border-color 0.15s;
-        cursor: default;
       }
 
       .task-card:hover {
@@ -184,7 +275,6 @@
         border-radius: 50%;
         border: 2px solid var(--border);
         flex-shrink: 0;
-        transition: border-color 0.15s;
       }
 
       .col-done .task-check {
@@ -247,15 +337,20 @@
         border-color: var(--accent-dim);
       }
 
-      .empty-state {
+      /* --- Loading / error states --- */
+      .state-msg {
         text-align: center;
-        color: var(--text-muted);
         font-size: 0.8rem;
         padding: 1.5rem 1rem;
+        color: var(--text-muted);
+      }
+
+      .state-msg.error {
+        color: var(--bugs-color);
       }
 
       footer {
-        max-width: 1100px;
+        max-width: 1200px;
         margin: 2.5rem auto 0;
         text-align: center;
         color: var(--text-muted);
@@ -264,27 +359,54 @@
     </style>
   </head>
   <body>
+    <!-- Token setup screen -->
+    <div id="setup-screen">
+      <div class="setup-card">
+        <h2>⚡ Mój Dashboard</h2>
+        <p>
+          Podaj token Todoist API, żeby zobaczyć swoje zadania.<br />
+          Znajdziesz go w:
+          <strong>Todoist → Ustawienia → Integracje → Token API</strong>.<br />
+          Token jest zapisywany tylko lokalnie w przeglądarce.
+        </p>
+        <input
+          id="token-input"
+          type="password"
+          placeholder="Wklej token API…"
+        />
+        <button id="token-save">Zapisz i załaduj</button>
+        <div class="setup-error" id="token-error">
+          Nie udało się pobrać danych. Sprawdź token.
+        </div>
+      </div>
+    </div>
+
     <header>
       <div class="logo">
         <div class="logo-icon">⚡</div>
         <h1>Mój Dashboard</h1>
       </div>
-      <div class="header-meta">
-        <div class="date-display" id="dateDisplay"></div>
-        <div class="stats-bar" id="statsBar"></div>
+      <div class="header-right">
+        <div class="header-meta">
+          <div class="date-display" id="dateDisplay"></div>
+          <div class="stats-bar" id="statsBar"></div>
+        </div>
+        <button class="btn-reset" id="btn-reset">Zmień token</button>
       </div>
     </header>
 
     <div class="board" id="board">
-      <div class="column col-todo">
+      <div class="column col-backlog">
         <div class="column-header">
           <div class="column-title">
             <div class="column-dot"></div>
-            Do zrobienia
+            Backlog
           </div>
-          <span class="column-count" id="count-todo">0</span>
+          <span class="column-count" id="count-backlog">–</span>
         </div>
-        <div class="task-list" id="list-todo"></div>
+        <div class="task-list" id="list-backlog">
+          <div class="state-msg">Ładowanie…</div>
+        </div>
       </div>
 
       <div class="column col-inprog">
@@ -293,9 +415,24 @@
             <div class="column-dot"></div>
             W trakcie
           </div>
-          <span class="column-count" id="count-inprog">0</span>
+          <span class="column-count" id="count-inprog">–</span>
         </div>
-        <div class="task-list" id="list-inprog"></div>
+        <div class="task-list" id="list-inprog">
+          <div class="state-msg">Ładowanie…</div>
+        </div>
+      </div>
+
+      <div class="column col-bugs">
+        <div class="column-header">
+          <div class="column-title">
+            <div class="column-dot"></div>
+            Bugi
+          </div>
+          <span class="column-count" id="count-bugs">–</span>
+        </div>
+        <div class="task-list" id="list-bugs">
+          <div class="state-msg">Ładowanie…</div>
+        </div>
       </div>
 
       <div class="column col-done">
@@ -304,35 +441,56 @@
             <div class="column-dot"></div>
             Zrobione
           </div>
-          <span class="column-count" id="count-done">0</span>
+          <span class="column-count" id="count-done">–</span>
         </div>
-        <div class="task-list" id="list-done"></div>
+        <div class="task-list" id="list-done">
+          <div class="state-msg">Ładowanie…</div>
+        </div>
       </div>
     </div>
 
     <footer>Mój Dashboard &copy; <span id="year"></span></footer>
 
     <script>
-      const tasks = {
-        todo: [
-          { text: "Zaprojektować logo aplikacji", priority: "p2" },
-          { text: "Napisać testy jednostkowe", priority: "p1" },
-          { text: "Skonfigurować środowisko CI/CD", priority: "p2" },
-          { text: "Uzupełnić dokumentację API", priority: "p3" },
-          { text: "Przejrzeć feedback od użytkowników", priority: "p3" },
-        ],
-        inprog: [
-          { text: "Zbudować szkielet strony HTML", priority: "p1" },
-          { text: "Podłączyć Todoist przez MCP", priority: "p2" },
-        ],
-        done: [
-          { text: "Skonfigurować projekt w Todoist", priority: "p3" },
-          { text: "Zaplanować etapy pracy", priority: "p2" },
-          { text: "Stworzyć repozytorium git", priority: "p3" },
-        ],
+      const PROJECT_ID = "6gj92jFJMwm2RmFq";
+      const SECTIONS = {
+        "6gj92pW5rVJc9vcq": "backlog",
+        "6gj92pQqwMR2C3jq": "inprog",
+        "6gj92pQjFpC8gfrH": "bugs",
+        "6gj92pRv86Mh4Rvq": "done",
       };
+      const STORAGE_KEY = "todoist_token";
 
-      function makeTaskCard(task) {
+      function getToken() {
+        return localStorage.getItem(STORAGE_KEY);
+      }
+
+      function saveToken(token) {
+        localStorage.setItem(STORAGE_KEY, token);
+      }
+
+      function clearToken() {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+
+      // --- Todoist API ---
+      async function fetchTasks(token) {
+        const url = `https://api.todoist.com/api/v1/tasks?project_id=${PROJECT_ID}`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : (data.results ?? []);
+      }
+
+      // Todoist priority: 4=p1 3=p2 2=p3 1=p4
+      function apiPriorityToTag(n) {
+        return ["p4", "p3", "p2", "p1"][Math.min(Math.max(n - 1, 0), 3)];
+      }
+
+      // --- Render ---
+      function makeTaskCard(task, isDone) {
         const card = document.createElement("div");
         card.className = "task-card";
 
@@ -344,65 +502,145 @@
 
         const text = document.createElement("span");
         text.className = "task-text";
-        text.textContent = task.text;
+        text.textContent = task.content;
 
         top.append(check, text);
 
         const meta = document.createElement("div");
         meta.className = "task-meta";
 
-        const tag = document.createElement("span");
-        const priority = ["p1", "p2", "p3", "p4"].includes(task.priority)
-          ? task.priority
-          : "p4";
-        tag.className = `tag ${priority}`;
-        tag.textContent = priority.toUpperCase();
+        if (!isDone && task.priority > 1) {
+          const tag = document.createElement("span");
+          const p = apiPriorityToTag(task.priority);
+          tag.className = `tag ${p}`;
+          tag.textContent = p.toUpperCase();
+          meta.append(tag);
+        }
 
-        meta.append(tag);
         card.append(top, meta);
         return card;
       }
 
-      function renderTasks(listId, countId, items) {
-        const list = document.getElementById(listId);
-        const count = document.getElementById(countId);
+      function renderColumn(columnKey, tasks) {
+        const list = document.getElementById(`list-${columnKey}`);
+        const count = document.getElementById(`count-${columnKey}`);
         if (!list || !count) return;
-        count.textContent = items.length;
+
+        count.textContent = tasks.length;
         list.replaceChildren();
 
-        if (items.length === 0) {
+        if (tasks.length === 0) {
           const empty = document.createElement("div");
-          empty.className = "empty-state";
+          empty.className = "state-msg";
           empty.textContent = "Brak zadań";
           list.append(empty);
           return;
         }
 
-        list.append(...items.map(makeTaskCard));
+        const isDone = columnKey === "done";
+        list.append(...tasks.map((t) => makeTaskCard(t, isDone)));
       }
 
-      function renderDate() {
+      function renderDate(tasksBySection) {
         const now = new Date();
-        const dateStr = now.toLocaleDateString("pl-PL", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-        document.getElementById("dateDisplay").textContent = dateStr;
+        document.getElementById("dateDisplay").textContent =
+          now.toLocaleDateString("pl-PL", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
         document.getElementById("year").textContent = now.getFullYear();
 
-        const total =
-          tasks.todo.length + tasks.inprog.length + tasks.done.length;
-        const done = tasks.done.length;
+        const total = Object.values(tasksBySection).reduce(
+          (s, arr) => s + arr.length,
+          0,
+        );
+        const done = (tasksBySection.done || []).length;
         document.getElementById("statsBar").textContent =
           `${done} z ${total} zadań ukończonych`;
       }
 
-      renderTasks("list-todo", "count-todo", tasks.todo);
-      renderTasks("list-inprog", "count-inprog", tasks.inprog);
-      renderTasks("list-done", "count-done", tasks.done);
-      renderDate();
+      function showError(msg) {
+        Object.keys(SECTIONS).forEach((_, i) => {
+          const key = Object.values(SECTIONS)[i];
+          const list = document.getElementById(`list-${key}`);
+          if (!list) return;
+          list.replaceChildren();
+          const el = document.createElement("div");
+          el.className = "state-msg error";
+          el.textContent = msg;
+          list.append(el);
+        });
+      }
+
+      async function loadAndRender(token) {
+        try {
+          const allTasks = await fetchTasks(token);
+
+          const bySection = { backlog: [], inprog: [], bugs: [], done: [] };
+          for (const task of allTasks) {
+            const col = SECTIONS[task.section_id];
+            if (col) bySection[col].push(task);
+          }
+
+          Object.entries(bySection).forEach(([key, tasks]) =>
+            renderColumn(key, tasks),
+          );
+          renderDate(bySection);
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: err.message };
+        }
+      }
+
+      // --- Setup screen ---
+      const setupScreen = document.getElementById("setup-screen");
+      const tokenInput = document.getElementById("token-input");
+      const tokenError = document.getElementById("token-error");
+
+      function showSetup() {
+        setupScreen.classList.add("visible");
+        tokenError.style.display = "none";
+        tokenInput.value = "";
+      }
+
+      function hideSetup() {
+        setupScreen.classList.remove("visible");
+      }
+
+      document
+        .getElementById("token-save")
+        .addEventListener("click", async () => {
+          const token = tokenInput.value.trim();
+          if (!token) return;
+          const result = await loadAndRender(token);
+          if (result.ok) {
+            saveToken(token);
+            hideSetup();
+          } else {
+            tokenError.textContent = `Błąd: ${result.error}`;
+            tokenError.style.display = "block";
+          }
+        });
+
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        clearToken();
+        showSetup();
+      });
+
+      // --- Boot ---
+      (async () => {
+        const token = getToken();
+        if (!token) {
+          showSetup();
+          return;
+        }
+        const result = await loadAndRender(token);
+        if (!result.ok) {
+          showError(`Błąd: ${result.error}`);
+        }
+      })();
     </script>
   </body>
 </html>
