@@ -337,6 +337,110 @@
         border-color: var(--accent-dim);
       }
 
+      /* --- Add task form --- */
+      .add-task-form {
+        padding: 0 0.75rem 0.75rem;
+        display: none;
+      }
+      .add-task-form.visible {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .add-task-input {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--accent-dim);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        outline: none;
+      }
+      .add-task-input:focus {
+        border-color: var(--accent);
+      }
+      .btn-add-confirm {
+        background: var(--accent);
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .btn-add-confirm:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .btn-add-task {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn-add-task:hover {
+        border-color: var(--accent-dim);
+        color: var(--accent);
+      }
+
+      /* --- Task check clickable --- */
+      .task-check {
+        cursor: pointer;
+      }
+      .task-check:hover {
+        border-color: var(--done-color) !important;
+        background: rgba(16, 185, 129, 0.15);
+      }
+
+      /* --- Completing animation --- */
+      .task-card.completing {
+        opacity: 0;
+        transform: scale(0.95);
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
+      }
+
+      /* --- Toast --- */
+      #toast {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.65rem 1.1rem;
+        font-size: 0.85rem;
+        color: var(--text);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        z-index: 200;
+        opacity: 0;
+        transform: translateY(8px);
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+        pointer-events: none;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      #toast.toast-error {
+        border-color: #7f1d1d;
+        color: var(--bugs-color);
+      }
+
       /* --- Loading / error states --- */
       .state-msg {
         text-align: center;
@@ -402,7 +506,26 @@
             <div class="column-dot"></div>
             Backlog
           </div>
-          <span class="column-count" id="count-backlog">–</span>
+          <div style="display: flex; align-items: center; gap: 0.5rem">
+            <span class="column-count" id="count-backlog">–</span>
+            <button
+              class="btn-add-task"
+              id="btn-add-task"
+              title="Dodaj zadanie"
+            >
+              +
+            </button>
+          </div>
+        </div>
+        <div class="add-task-form" id="add-task-form">
+          <input
+            class="add-task-input"
+            id="add-task-input"
+            type="text"
+            placeholder="Nowe zadanie…"
+            maxlength="200"
+          />
+          <button class="btn-add-confirm" id="btn-add-confirm">Dodaj</button>
         </div>
         <div class="task-list" id="list-backlog">
           <div class="state-msg">Ładowanie…</div>
@@ -449,10 +572,13 @@
       </div>
     </div>
 
+    <div id="toast"></div>
+
     <footer>Mój Dashboard &copy; <span id="year"></span></footer>
 
     <script>
       const PROJECT_ID = "6gj92jFJMwm2RmFq";
+      const BACKLOG_SECTION = "6gj92pW5rVJc9vcq";
       const SECTIONS = {
         "6gj92pW5rVJc9vcq": "backlog",
         "6gj92pQqwMR2C3jq": "inprog",
@@ -464,24 +590,68 @@
       function getToken() {
         return localStorage.getItem(STORAGE_KEY);
       }
-
-      function saveToken(token) {
-        localStorage.setItem(STORAGE_KEY, token);
+      function saveToken(t) {
+        localStorage.setItem(STORAGE_KEY, t);
       }
-
       function clearToken() {
         localStorage.removeItem(STORAGE_KEY);
       }
 
+      // --- Toast ---
+      let toastTimer = null;
+      function showToast(msg, isError = false) {
+        const el = document.getElementById("toast");
+        el.textContent = msg;
+        el.className = isError ? "toast-error" : "";
+        el.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+      }
+
       // --- Todoist API ---
       async function fetchTasks(token) {
-        const url = `https://api.todoist.com/api/v1/tasks?project_id=${PROJECT_ID}`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `https://api.todoist.com/api/v1/tasks?project_id=${PROJECT_ID}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         return Array.isArray(data) ? data : (data.results ?? []);
+      }
+
+      const DONE_SECTION = "6gj92pRv86Mh4Rvq";
+
+      async function moveTaskToDone(token, taskId) {
+        const res = await fetch(
+          `https://api.todoist.com/api/v1/tasks/${taskId}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ section_id: DONE_SECTION }),
+          },
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      }
+
+      async function createTask(token, content, sectionId) {
+        const res = await fetch("https://api.todoist.com/api/v1/tasks", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content,
+            project_id: PROJECT_ID,
+            section_id: sectionId,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
       }
 
       // Todoist priority: 4=p1 3=p2 2=p3 1=p4
@@ -499,6 +669,33 @@
 
         const check = document.createElement("div");
         check.className = "task-check";
+
+        if (!isDone) {
+          check.addEventListener("click", async () => {
+            const token = getToken();
+            if (!token) return;
+            card.classList.add("completing");
+            try {
+              await moveTaskToDone(token, task.id);
+              setTimeout(() => {
+                card.remove();
+                const doneList = document.getElementById("list-done");
+                const doneCount = document.getElementById("count-done");
+                const empty = doneList.querySelector(".state-msg");
+                if (empty) empty.remove();
+                doneList.prepend(
+                  makeTaskCard({ ...task, section_id: DONE_SECTION }, true),
+                );
+                doneCount.textContent =
+                  doneList.querySelectorAll(".task-card").length;
+              }, 250);
+              showToast("Przeniesiono do Zrobione ✓");
+            } catch {
+              card.classList.remove("completing");
+              showToast("Błąd — spróbuj ponownie", true);
+            }
+          });
+        }
 
         const text = document.createElement("span");
         text.className = "task-text";
@@ -525,10 +722,8 @@
         const list = document.getElementById(`list-${columnKey}`);
         const count = document.getElementById(`count-${columnKey}`);
         if (!list || !count) return;
-
         count.textContent = tasks.length;
         list.replaceChildren();
-
         if (tasks.length === 0) {
           const empty = document.createElement("div");
           empty.className = "state-msg";
@@ -536,7 +731,6 @@
           list.append(empty);
           return;
         }
-
         const isDone = columnKey === "done";
         list.append(...tasks.map((t) => makeTaskCard(t, isDone)));
       }
@@ -551,9 +745,8 @@
             day: "numeric",
           });
         document.getElementById("year").textContent = now.getFullYear();
-
         const total = Object.values(tasksBySection).reduce(
-          (s, arr) => s + arr.length,
+          (s, a) => s + a.length,
           0,
         );
         const done = (tasksBySection.done || []).length;
@@ -562,8 +755,7 @@
       }
 
       function showError(msg) {
-        Object.keys(SECTIONS).forEach((_, i) => {
-          const key = Object.values(SECTIONS)[i];
+        Object.values(SECTIONS).forEach((key) => {
           const list = document.getElementById(`list-${key}`);
           if (!list) return;
           list.replaceChildren();
@@ -577,13 +769,11 @@
       async function loadAndRender(token) {
         try {
           const allTasks = await fetchTasks(token);
-
           const bySection = { backlog: [], inprog: [], bugs: [], done: [] };
           for (const task of allTasks) {
             const col = SECTIONS[task.section_id];
             if (col) bySection[col].push(task);
           }
-
           Object.entries(bySection).forEach(([key, tasks]) =>
             renderColumn(key, tasks),
           );
@@ -593,6 +783,49 @@
           return { ok: false, error: err.message };
         }
       }
+
+      // --- Add task form ---
+      const addForm = document.getElementById("add-task-form");
+      const addInput = document.getElementById("add-task-input");
+      const addConfirm = document.getElementById("btn-add-confirm");
+
+      document.getElementById("btn-add-task").addEventListener("click", () => {
+        addForm.classList.toggle("visible");
+        if (addForm.classList.contains("visible")) addInput.focus();
+      });
+
+      async function submitNewTask() {
+        const content = addInput.value.trim();
+        if (!content) return;
+        const token = getToken();
+        if (!token) return;
+        addConfirm.disabled = true;
+        try {
+          const task = await createTask(token, content, BACKLOG_SECTION);
+          addInput.value = "";
+          addForm.classList.remove("visible");
+          const list = document.getElementById("list-backlog");
+          const count = document.getElementById("count-backlog");
+          const empty = list.querySelector(".state-msg");
+          if (empty) empty.remove();
+          list.prepend(makeTaskCard(task, false));
+          count.textContent = list.querySelectorAll(".task-card").length;
+          showToast("Zadanie dodane ✓");
+        } catch {
+          showToast("Błąd dodawania — spróbuj ponownie", true);
+        } finally {
+          addConfirm.disabled = false;
+        }
+      }
+
+      addConfirm.addEventListener("click", submitNewTask);
+      addInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitNewTask();
+        if (e.key === "Escape") {
+          addForm.classList.remove("visible");
+          addInput.value = "";
+        }
+      });
 
       // --- Setup screen ---
       const setupScreen = document.getElementById("setup-screen");
@@ -637,9 +870,7 @@
           return;
         }
         const result = await loadAndRender(token);
-        if (!result.ok) {
-          showError(`Błąd: ${result.error}`);
-        }
+        if (!result.ok) showError(`Błąd: ${result.error}`);
       })();
     </script>
   </body>
