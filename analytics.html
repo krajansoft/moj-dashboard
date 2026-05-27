@@ -357,6 +357,46 @@
         white-space: nowrap;
       }
 
+      /* --- Bug analysis --- */
+      .bugs-summary {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+      }
+      .bug-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        min-width: 110px;
+        text-align: center;
+      }
+      .bug-stat-count {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .bug-stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+      .bug-critical { color: #f87171; }
+      .bug-warning  { color: #fbbf24; }
+      .bug-minor    { color: #10b981; }
+      .bug-severity-badge {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .bug-p1 { background: rgba(248,113,113,0.15); color: #f87171; }
+      .bug-p2 { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+      .bug-p3 { background: rgba(16,185,129,0.15);  color: #10b981; }
+
       /* --- Chart --- */
       .chart-outer {
         overflow-x: auto;
@@ -646,6 +686,28 @@
           </div>
         </div>
       </div>
+
+      <!-- E: Bug analysis -->
+      <div class="section-block">
+        <div class="section-title">
+          <span>🐛</span> Analiza błędów
+        </div>
+        <div class="bugs-summary" id="bugs-summary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nazwa błędu</th>
+                <th>Waga</th>
+                <th>Źródło</th>
+                <th>Priorytet</th>
+                <th>Zgłoszony</th>
+              </tr>
+            </thead>
+            <tbody id="bugs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
     </main>
 
     <footer id="footer" style="display: none">
@@ -825,6 +887,76 @@
         });
       }
 
+      const BUGS_SECTION_ID = "6gj92pQjFpC8gfrH";
+
+      function parseBugSeverity(task) {
+        if (task.priority === 4) return { label: "🔴 KRYTYCZNY", css: "bug-p1" };
+        if (task.priority === 3) return { label: "🟡 POWAŻNY",   css: "bug-p2" };
+        return                          { label: "🟢 DROBNY",     css: "bug-p3" };
+      }
+
+      function parseBugSource(task) {
+        const desc = task.description || "";
+        for (const s of ["SKILL", "AGENT", "HOOK", "CONFIG", "HUMAN"]) {
+          if (desc.includes(`Źródło: ${s}`)) return s;
+        }
+        return "—";
+      }
+
+      function renderBugs(bugTasks) {
+        const summary = document.getElementById("bugs-summary");
+        const tbody   = document.getElementById("bugs-tbody");
+        summary.replaceChildren();
+        tbody.replaceChildren();
+
+        const p1 = bugTasks.filter(t => t.priority === 4).length;
+        const p2 = bugTasks.filter(t => t.priority === 3).length;
+        const p3 = bugTasks.length - p1 - p2;
+
+        for (const { count, label, color } of [
+          { count: bugTasks.length, label: "Łącznie otwartych", color: "" },
+          { count: p1, label: "🔴 Krytycznych",  color: "bug-critical" },
+          { count: p2, label: "🟡 Poważnych",     color: "bug-warning"  },
+          { count: p3, label: "🟢 Drobnych",      color: "bug-minor"    },
+        ]) {
+          const div   = document.createElement("div");  div.className = "bug-stat";
+          const cEl   = document.createElement("div");  cEl.className = `bug-stat-count ${color}`; cEl.textContent = count;
+          const lEl   = document.createElement("div");  lEl.className = "bug-stat-label";           lEl.textContent = label;
+          div.append(cEl, lEl);
+          summary.append(div);
+        }
+
+        if (bugTasks.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 5; td.className = "empty-state"; td.textContent = "Brak otwartych błędów 🎉";
+          tr.append(td); tbody.append(tr);
+          return;
+        }
+
+        const sorted = [...bugTasks].sort((a, b) => b.priority - a.priority);
+        for (const task of sorted) {
+          const sev    = parseBugSeverity(task);
+          const source = parseBugSource(task);
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td"); tdName.className = "task-name-cell";
+          const ns = document.createElement("span"); ns.className = "task-name-text"; ns.textContent = task.content; ns.title = task.content;
+          tdName.append(ns);
+
+          const tdSev = document.createElement("td");
+          const badge = document.createElement("span"); badge.className = `bug-severity-badge ${sev.css}`; badge.textContent = sev.label;
+          tdSev.append(badge);
+
+          const tdSrc  = document.createElement("td"); tdSrc.textContent  = source;    tdSrc.style.color  = "var(--text-muted)"; tdSrc.style.fontSize  = "0.8rem";
+          const tdPrio = document.createElement("td"); tdPrio.textContent = task.priority === 4 ? "P1" : task.priority === 3 ? "P2" : "P3"; tdPrio.style.color = "var(--text-muted)"; tdPrio.style.fontSize = "0.8rem";
+          const tdDate = document.createElement("td"); tdDate.textContent = fmtDate(task.created_at); tdDate.style.whiteSpace = "nowrap"; tdDate.style.color = "var(--text-muted)"; tdDate.style.fontSize = "0.8rem";
+
+          tr.append(tdName, tdSev, tdSrc, tdPrio, tdDate);
+          tbody.append(tr);
+        }
+      }
+
       // Load and aggregate data
       async function loadData(token) {
         const tasks = await apiGet(token, `tasks?project_id=${PROJECT_ID}`);
@@ -908,7 +1040,8 @@
           }),
         );
 
-        return enriched.filter(Boolean);
+        const bugTasks = tasks.filter(t => t.section_id === BUGS_SECTION_ID);
+        return { costItems: enriched.filter(Boolean), bugTasks };
       }
 
       // Render summary
@@ -1161,11 +1294,12 @@
       }
 
       // Show analytics content
-      function render(items) {
+      function render({ costItems: items, bugTasks }) {
         renderSummary(items);
         renderTable(items);
         renderChart(items);
         renderRankings(items);
+        renderBugs(bugTasks);
         document.getElementById("loading").style.display = "none";
         document.getElementById("analytics-content").style.display = "block";
         document.getElementById("footer").style.display = "block";
@@ -1195,9 +1329,9 @@
           hideSetup();
           document.getElementById("loading").style.display = "block";
           try {
-            const items = await loadData(token);
+            const data = await loadData(token);
             saveToken(token);
-            render(items);
+            render(data);
           } catch (err) {
             document.getElementById("loading").style.display = "none";
             document.getElementById(
@@ -1224,8 +1358,8 @@
         }
         document.getElementById("loading").style.display = "block";
         try {
-          const items = await loadData(token);
-          render(items);
+          const data = await loadData(token);
+          render(data);
         } catch (err) {
           showToast(`Błąd ładowania: ${err.message}`, true);
           showSetup();
