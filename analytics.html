@@ -1564,12 +1564,16 @@
       }
 
       // Canvas helpers
-      function setupCanvas(canvas, cssW, cssH) {
+      function setupCanvas(canvas, cssW, cssH, opts = {}) {
         const dpr = window.devicePixelRatio || 1;
         canvas.width = cssW * dpr;
         canvas.height = cssH * dpr;
-        canvas.style.width = `${cssW}px`;
-        canvas.style.height = `${cssH}px`;
+        if (!opts.skipStyle) {
+          canvas.style.width = `${cssW}px`;
+          canvas.style.height = `${cssH}px`;
+        } else {
+          canvas.style.height = `${cssH}px`;
+        }
         const ctx = canvas.getContext("2d");
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         return ctx;
@@ -1724,7 +1728,7 @@
         const tooltip = document.getElementById("trend-tooltip");
         const cssH = parseInt(canvas.dataset.h || "240", 10);
         const cssW = canvas.parentElement.clientWidth || 600;
-        const ctx = setupCanvas(canvas, cssW, cssH);
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
         ctx.clearRect(0, 0, cssW, cssH);
 
         const points = [];
@@ -1900,7 +1904,12 @@
               best.taskName.length > 30
                 ? best.taskName.slice(0, 30) + "…"
                 : best.taskName;
-            tooltip.innerHTML = `${name}<br>${d}: ${fmtPLN(best.cost)}`;
+            tooltip.replaceChildren();
+            const nameDiv = document.createElement("div");
+            nameDiv.textContent = name;
+            const lineDiv = document.createElement("div");
+            lineDiv.textContent = `${d}: ${fmtPLN(best.cost)}`;
+            tooltip.append(nameDiv, lineDiv);
             tooltip.style.left = `${best.x}px`;
             tooltip.style.top = `${best.y}px`;
             tooltip.classList.add("show");
@@ -2167,15 +2176,22 @@
           modelEntries.length === 0
             ? "—"
             : modelEntries.map(([m, c]) => `${m} (×${c})`).join(", ");
-        const sessionsLine = document.createElement("span");
-        sessionsLine.innerHTML = `Sesji: <strong>${item.totalSessions}</strong>`;
-        const modelEl = document.createElement("span");
-        modelEl.innerHTML = `Model: <strong>${modelStr}</strong>`;
-        const tokensLine = document.createElement("span");
-        tokensLine.innerHTML = `Tokeny: <strong>${fmtTokens(item.totalTokens)}</strong>`;
-        const computedLine = document.createElement("span");
-        computedLine.innerHTML = `Suma składowych: <strong>${fmtPLN(total)}</strong>`;
-        modelLine.append(sessionsLine, modelEl, tokensLine, computedLine);
+
+        const makeMeta = (label, value) => {
+          const span = document.createElement("span");
+          span.append(document.createTextNode(`${label}: `));
+          const strong = document.createElement("strong");
+          strong.textContent = value;
+          span.append(strong);
+          return span;
+        };
+
+        modelLine.append(
+          makeMeta("Sesji", String(item.totalSessions)),
+          makeMeta("Model", modelStr),
+          makeMeta("Tokeny", fmtTokens(item.totalTokens)),
+          makeMeta("Suma składowych", fmtPLN(total)),
+        );
         wrap.append(modelLine);
 
         return wrap;
