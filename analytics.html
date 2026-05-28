@@ -245,6 +245,76 @@
         margin-top: 0.4rem;
       }
 
+      /* --- Breakdown card (cost structure) --- */
+      .stat-card-wide {
+        grid-column: span 2;
+      }
+      @media (max-width: 700px) {
+        .stat-card-wide {
+          grid-column: 1 / -1;
+        }
+      }
+      .breakdown-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        margin: 0.4rem 0 0.6rem;
+      }
+      .breakdown-row {
+        display: grid;
+        grid-template-columns: 90px 1fr 70px 44px;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.78rem;
+      }
+      .breakdown-label {
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      .breakdown-bar-wrap {
+        height: 6px;
+        background: var(--bg);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .breakdown-bar {
+        height: 100%;
+        transition: width 0.3s;
+      }
+      .breakdown-bar.input {
+        background: #60a5fa;
+      }
+      .breakdown-bar.output {
+        background: #f87171;
+      }
+      .breakdown-bar.cw {
+        background: #fbbf24;
+      }
+      .breakdown-bar.cr {
+        background: #10b981;
+      }
+      .breakdown-value {
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+        color: var(--text);
+      }
+      .breakdown-pct {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .breakdown-row.hot .breakdown-value,
+      .breakdown-row.hot .breakdown-label {
+        color: var(--bugs-color);
+        font-weight: 600;
+      }
+      .breakdown-row.good .breakdown-value,
+      .breakdown-row.good .breakdown-label {
+        color: var(--done-color);
+        font-weight: 600;
+      }
+
       /* --- Section block --- */
       .section-block {
         background: var(--surface);
@@ -308,6 +378,87 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* --- Expandable task rows --- */
+      tbody tr.task-row {
+        cursor: pointer;
+      }
+      tbody tr.task-row.expanded > td {
+        background: rgba(34, 38, 58, 0.6);
+      }
+      tbody tr.task-row.alert-output > td {
+        background: rgba(251, 191, 36, 0.09);
+      }
+      tbody tr.task-row.alert-output:hover > td {
+        background: rgba(251, 191, 36, 0.14);
+      }
+      .alert-icon {
+        display: inline-block;
+        margin-left: 0.35rem;
+        color: #fbbf24;
+        cursor: help;
+      }
+      .cost-hot {
+        color: var(--bugs-color);
+        font-weight: 600;
+      }
+      .expand-row > td {
+        background: var(--bg) !important;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .expand-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+      }
+      @media (max-width: 700px) {
+        .expand-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .expand-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .expand-item-label {
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+      }
+      .expand-item-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
+      .expand-item-sub {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .expand-item.hot .expand-item-value {
+        color: var(--bugs-color);
+      }
+      .expand-item.good .expand-item-value {
+        color: var(--done-color);
+      }
+      .expand-model {
+        margin-top: 0.85rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+      .expand-model strong {
+        color: var(--text);
+        font-weight: 500;
+      }
+
       /* --- Status badges --- */
       .status-badge {
         display: inline-flex;
@@ -355,6 +506,61 @@
         border: 1px solid var(--border);
         color: var(--text-muted);
         white-space: nowrap;
+      }
+
+      /* --- Bug analysis --- */
+      .bugs-summary {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+      }
+      .bug-stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+        min-width: 110px;
+        text-align: center;
+      }
+      .bug-stat-count {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .bug-stat-label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+      .bug-critical {
+        color: #f87171;
+      }
+      .bug-warning {
+        color: #fbbf24;
+      }
+      .bug-minor {
+        color: #10b981;
+      }
+      .bug-severity-badge {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .bug-p1 {
+        background: rgba(248, 113, 113, 0.15);
+        color: #f87171;
+      }
+      .bug-p2 {
+        background: rgba(251, 191, 36, 0.15);
+        color: #fbbf24;
+      }
+      .bug-p3 {
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
       }
 
       /* --- Chart --- */
@@ -406,6 +612,105 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         width: 100%;
+      }
+
+      /* --- Pie / Donut chart --- */
+      .pie-wrap {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 2rem;
+        align-items: center;
+        position: relative;
+      }
+      @media (max-width: 700px) {
+        .pie-wrap {
+          grid-template-columns: 1fr;
+          justify-items: center;
+          gap: 1.2rem;
+        }
+      }
+      .pie-wrap canvas {
+        max-width: 100%;
+        height: auto;
+      }
+      .pie-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        min-width: 0;
+      }
+      .pie-legend-item {
+        display: grid;
+        grid-template-columns: 14px 1fr auto auto;
+        gap: 0.65rem;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .pie-legend-swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+      }
+      .pie-legend-value {
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
+      }
+      .pie-legend-pct {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-variant-numeric: tabular-nums;
+        min-width: 36px;
+        text-align: right;
+      }
+      .canvas-tooltip {
+        position: absolute;
+        pointer-events: none;
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.4rem 0.7rem;
+        font-size: 0.78rem;
+        color: var(--text);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transform: translate(-50%, -130%);
+        transition: opacity 0.1s;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .canvas-tooltip.show {
+        opacity: 1;
+      }
+
+      /* --- Trend chart --- */
+      .trend-wrap {
+        position: relative;
+      }
+      .trend-wrap canvas {
+        width: 100%;
+        height: 240px;
+        display: block;
+      }
+      .trend-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 0.75rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+      .trend-legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .trend-legend-line {
+        width: 18px;
+        height: 0;
+        border-top: 2px solid;
+      }
+      .trend-legend-line.dashed {
+        border-top-style: dashed;
       }
 
       /* --- Rankings --- */
@@ -594,13 +899,16 @@
           <div class="stat-value" id="stat-avg-pln">—</div>
           <div class="stat-sub" id="stat-avg-tokens">— tokenów / task</div>
         </div>
+        <div class="stat-card stat-card-wide" id="stat-breakdown-card">
+          <div class="stat-label">💸 Struktura kosztów (łącznie)</div>
+          <div class="breakdown-rows" id="breakdown-rows"></div>
+          <div class="stat-sub" id="breakdown-top">Najdroższy typ: —</div>
+        </div>
       </div>
 
       <!-- B: Task history table -->
       <div class="section-block">
-        <div class="section-title">
-          <span>📋</span> Historia tasków
-        </div>
+        <div class="section-title"><span>📋</span> Historia tasków</div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -610,6 +918,7 @@
                 <th>Sesji</th>
                 <th class="num-cell">Tokeny</th>
                 <th class="num-cell">Koszt PLN</th>
+                <th>Model</th>
                 <th>Skille</th>
                 <th>Agenci</th>
                 <th>Ostatnia aktywność</th>
@@ -622,19 +931,25 @@
 
       <!-- C: Cost chart -->
       <div class="section-block">
-        <div class="section-title">
-          <span>📊</span> Koszt per task (PLN)
-        </div>
+        <div class="section-title"><span>📊</span> Koszt per task (PLN)</div>
         <div class="chart-outer">
           <div class="chart-bars" id="chart-bars"></div>
         </div>
       </div>
 
+      <!-- C2: Pie chart - cost structure -->
+      <div class="section-block">
+        <div class="section-title"><span>🥧</span> Podział kosztów na typy</div>
+        <div class="pie-wrap">
+          <canvas id="pie-chart" data-w="320" data-h="320"></canvas>
+          <div class="pie-legend" id="pie-legend"></div>
+          <div class="canvas-tooltip" id="pie-tooltip"></div>
+        </div>
+      </div>
+
       <!-- D: Rankings -->
       <div class="section-block">
-        <div class="section-title">
-          <span>🏆</span> Top skille i agenci
-        </div>
+        <div class="section-title"><span>🏆</span> Top skille i agenci</div>
         <div class="rankings-grid">
           <div>
             <div class="rank-section-title">📚 Skille (liczba wywołań)</div>
@@ -644,6 +959,52 @@
             <div class="rank-section-title">🤖 Agenci (liczba tasków)</div>
             <div class="rank-list" id="rank-agents"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- E: Bug analysis -->
+      <div class="section-block">
+        <div class="section-title"><span>🐛</span> Analiza błędów</div>
+        <div class="bugs-summary" id="bugs-summary"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nazwa błędu</th>
+                <th>Waga</th>
+                <th>Źródło</th>
+                <th>Priorytet</th>
+                <th>Zgłoszony</th>
+              </tr>
+            </thead>
+            <tbody id="bugs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- F: Trends -->
+      <div class="section-block">
+        <div class="section-title"><span>📈</span> Trendy optymalizacji</div>
+        <div class="trend-wrap">
+          <canvas id="trend-chart" data-h="240"></canvas>
+          <div class="canvas-tooltip" id="trend-tooltip"></div>
+        </div>
+        <div class="trend-legend">
+          <span class="trend-legend-item">
+            <span class="trend-legend-line" style="color: #60a5fa"></span>
+            Koszt sesji (PLN)
+          </span>
+          <span class="trend-legend-item">
+            <span
+              class="trend-legend-line dashed"
+              style="color: #fbbf24"
+            ></span>
+            Linia trendu
+          </span>
+          <span class="trend-legend-item">
+            <span class="trend-legend-line" style="color: #10b981"></span>
+            Wdrożenie optymalizacji
+          </span>
         </div>
       </div>
     </main>
@@ -730,14 +1091,22 @@
 
         for (const line of lines) {
           // New format: "  Input:       12345 | Output:      3456"
-          const inputOutputM = line.match(/Input:\s*~?([\d,\s]+)\s*\|\s*Output:\s*~?([\d,\s]+)/);
+          const inputOutputM = line.match(
+            /Input:\s*~?([\d,\s]+)\s*\|\s*Output:\s*~?([\d,\s]+)/,
+          );
           if (inputOutputM) {
-            result.inputTokens = parseInt(inputOutputM[1].replace(/[,\s]/g, ""));
-            result.outputTokens = parseInt(inputOutputM[2].replace(/[,\s]/g, ""));
+            result.inputTokens = parseInt(
+              inputOutputM[1].replace(/[,\s]/g, ""),
+            );
+            result.outputTokens = parseInt(
+              inputOutputM[2].replace(/[,\s]/g, ""),
+            );
           }
 
           // New format: "  Cache write: 123 | Cache read:  456"
-          const cacheM = line.match(/Cache write:\s*~?([\d,\s]+)\s*\|\s*Cache read:\s*~?([\d,\s]+)/);
+          const cacheM = line.match(
+            /Cache write:\s*~?([\d,\s]+)\s*\|\s*Cache read:\s*~?([\d,\s]+)/,
+          );
           if (cacheM) {
             result.cacheWriteTokens = parseInt(cacheM[1].replace(/[,\s]/g, ""));
             result.cacheReadTokens = parseInt(cacheM[2].replace(/[,\s]/g, ""));
@@ -760,7 +1129,9 @@
           }
 
           // Cost: "💵 Koszt: ~$1.16 (~4.63 PLN)" or "$1.16 (~4.63 PLN)"
-          const costM = line.match(/Koszt:.*?~?\$~?([\d.]+).*?~?([\d.]+)\s*PLN/);
+          const costM = line.match(
+            /Koszt:.*?~?\$~?([\d.]+).*?~?([\d.]+)\s*PLN/,
+          );
           if (costM) {
             result.costUSD = parseFloat(costM[1]);
             result.costPLN = parseFloat(costM[2]);
@@ -799,11 +1170,59 @@
         }
 
         // Derive totalTokens if still 0 and we have input/output
-        if (result.totalTokens === 0 && (result.inputTokens || result.outputTokens)) {
-          result.totalTokens = result.inputTokens + result.outputTokens + result.cacheWriteTokens + result.cacheReadTokens;
+        if (
+          result.totalTokens === 0 &&
+          (result.inputTokens || result.outputTokens)
+        ) {
+          result.totalTokens =
+            result.inputTokens +
+            result.outputTokens +
+            result.cacheWriteTokens +
+            result.cacheReadTokens;
         }
 
         return result;
+      }
+
+      // Pricing — USD per million tokens
+      const MODEL_PRICING = {
+        sonnet: { input: 3.0, output: 15.0, cacheWrite: 3.75, cacheRead: 0.3 },
+        opus: { input: 15.0, output: 75.0, cacheWrite: 18.75, cacheRead: 1.5 },
+        haiku: { input: 0.8, output: 4.0, cacheWrite: 1.0, cacheRead: 0.08 },
+      };
+      const DEFAULT_PRICING = MODEL_PRICING.sonnet;
+      const USD_TO_PLN = 4.0;
+
+      function getPricing(modelName) {
+        if (!modelName) return DEFAULT_PRICING;
+        const k = modelName.toLowerCase();
+        if (k.includes("opus")) return MODEL_PRICING.opus;
+        if (k.includes("haiku")) return MODEL_PRICING.haiku;
+        return MODEL_PRICING.sonnet;
+      }
+
+      function computeBreakdownPLN(session) {
+        const p = getPricing(session.model);
+        return {
+          inputPLN: (session.inputTokens / 1_000_000) * p.input * USD_TO_PLN,
+          outputPLN: (session.outputTokens / 1_000_000) * p.output * USD_TO_PLN,
+          cacheWritePLN:
+            (session.cacheWriteTokens / 1_000_000) * p.cacheWrite * USD_TO_PLN,
+          cacheReadPLN:
+            (session.cacheReadTokens / 1_000_000) * p.cacheRead * USD_TO_PLN,
+        };
+      }
+
+      function sumBreakdowns(list) {
+        return list.reduce(
+          (acc, b) => ({
+            inputPLN: acc.inputPLN + b.inputPLN,
+            outputPLN: acc.outputPLN + b.outputPLN,
+            cacheWritePLN: acc.cacheWritePLN + b.cacheWritePLN,
+            cacheReadPLN: acc.cacheReadPLN + b.cacheReadPLN,
+          }),
+          { inputPLN: 0, outputPLN: 0, cacheWritePLN: 0, cacheReadPLN: 0 },
+        );
       }
 
       // Format helpers
@@ -825,6 +1244,102 @@
         });
       }
 
+      const BUGS_SECTION_ID = "6gj92pQjFpC8gfrH";
+
+      function parseBugSeverity(task) {
+        if (task.priority === 4)
+          return { label: "🔴 KRYTYCZNY", css: "bug-p1" };
+        if (task.priority === 3) return { label: "🟡 POWAŻNY", css: "bug-p2" };
+        return { label: "🟢 DROBNY", css: "bug-p3" };
+      }
+
+      function parseBugSource(task) {
+        const desc = task.description || "";
+        for (const s of ["SKILL", "AGENT", "HOOK", "CONFIG", "HUMAN"]) {
+          if (desc.includes(`Źródło: ${s}`)) return s;
+        }
+        return "—";
+      }
+
+      function renderBugs(bugTasks) {
+        const summary = document.getElementById("bugs-summary");
+        const tbody = document.getElementById("bugs-tbody");
+        summary.replaceChildren();
+        tbody.replaceChildren();
+
+        const p1 = bugTasks.filter((t) => t.priority === 4).length;
+        const p2 = bugTasks.filter((t) => t.priority === 3).length;
+        const p3 = bugTasks.length - p1 - p2;
+
+        for (const { count, label, color } of [
+          { count: bugTasks.length, label: "Łącznie otwartych", color: "" },
+          { count: p1, label: "🔴 Krytycznych", color: "bug-critical" },
+          { count: p2, label: "🟡 Poważnych", color: "bug-warning" },
+          { count: p3, label: "🟢 Drobnych", color: "bug-minor" },
+        ]) {
+          const div = document.createElement("div");
+          div.className = "bug-stat";
+          const cEl = document.createElement("div");
+          cEl.className = `bug-stat-count ${color}`;
+          cEl.textContent = count;
+          const lEl = document.createElement("div");
+          lEl.className = "bug-stat-label";
+          lEl.textContent = label;
+          div.append(cEl, lEl);
+          summary.append(div);
+        }
+
+        if (bugTasks.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 5;
+          td.className = "empty-state";
+          td.textContent = "Brak otwartych błędów 🎉";
+          tr.append(td);
+          tbody.append(tr);
+          return;
+        }
+
+        const sorted = [...bugTasks].sort((a, b) => b.priority - a.priority);
+        for (const task of sorted) {
+          const sev = parseBugSeverity(task);
+          const source = parseBugSource(task);
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.className = "task-name-cell";
+          const ns = document.createElement("span");
+          ns.className = "task-name-text";
+          ns.textContent = task.content;
+          ns.title = task.content;
+          tdName.append(ns);
+
+          const tdSev = document.createElement("td");
+          const badge = document.createElement("span");
+          badge.className = `bug-severity-badge ${sev.css}`;
+          badge.textContent = sev.label;
+          tdSev.append(badge);
+
+          const tdSrc = document.createElement("td");
+          tdSrc.textContent = source;
+          tdSrc.style.color = "var(--text-muted)";
+          tdSrc.style.fontSize = "0.8rem";
+          const tdPrio = document.createElement("td");
+          tdPrio.textContent =
+            task.priority === 4 ? "P1" : task.priority === 3 ? "P2" : "P3";
+          tdPrio.style.color = "var(--text-muted)";
+          tdPrio.style.fontSize = "0.8rem";
+          const tdDate = document.createElement("td");
+          tdDate.textContent = fmtDate(task.created_at);
+          tdDate.style.whiteSpace = "nowrap";
+          tdDate.style.color = "var(--text-muted)";
+          tdDate.style.fontSize = "0.8rem";
+
+          tr.append(tdName, tdSev, tdSrc, tdPrio, tdDate);
+          tbody.append(tr);
+        }
+      }
+
       // Load and aggregate data
       async function loadData(token) {
         const tasks = await apiGet(token, `tasks?project_id=${PROJECT_ID}`);
@@ -838,7 +1353,13 @@
               );
               const costParsed = comments
                 .filter((c) => c.content?.startsWith("💰 Koszt sesji"))
-                .map((c) => parseCostComment(c.content))
+                .map((c) => {
+                  const parsed = parseCostComment(c.content);
+                  if (!parsed) return null;
+                  parsed.postedAt = c.posted_at ?? null;
+                  parsed.breakdown = computeBreakdownPLN(parsed);
+                  return parsed;
+                })
                 .filter(Boolean);
 
               if (costParsed.length === 0) return null;
@@ -886,6 +1407,15 @@
 
               const lastCmt = comments.at(-1);
 
+              const breakdown = sumBreakdowns(
+                costParsed.map((c) => c.breakdown),
+              );
+              const computedTotalPLN =
+                breakdown.inputPLN +
+                breakdown.outputPLN +
+                breakdown.cacheWritePLN +
+                breakdown.cacheReadPLN;
+
               return {
                 task,
                 sessions: costParsed,
@@ -897,6 +1427,8 @@
                 totalCacheReadTokens,
                 totalCostUSD,
                 totalCostPLN,
+                breakdown,
+                computedTotalPLN,
                 skillCounts,
                 agentCounts,
                 modelCounts,
@@ -908,7 +1440,8 @@
           }),
         );
 
-        return enriched.filter(Boolean);
+        const bugTasks = tasks.filter((t) => t.section_id === BUGS_SECTION_ID);
+        return { costItems: enriched.filter(Boolean), bugTasks };
       }
 
       // Render summary
@@ -923,21 +1456,468 @@
           totalTasks > 0 ? Math.round(totalTokens / totalTasks) : 0;
 
         document.getElementById("stat-tasks").textContent = totalTasks;
-        document.getElementById(
-          "stat-sessions-total",
-        ).textContent = `${totalSessions} sesji łącznie`;
+        document.getElementById("stat-sessions-total").textContent =
+          `${totalSessions} sesji łącznie`;
         document.getElementById("stat-cost-pln").textContent =
           fmtPLN(totalCostPLN);
-        document.getElementById(
-          "stat-cost-usd",
-        ).textContent = `$${totalCostUSD.toFixed(2)} USD`;
+        document.getElementById("stat-cost-usd").textContent =
+          `$${totalCostUSD.toFixed(2)} USD`;
         document.getElementById("stat-tokens").textContent =
           fmtTokens(totalTokens);
         document.getElementById("stat-avg-pln").textContent =
           fmtPLN(avgCostPLN);
-        document.getElementById(
-          "stat-avg-tokens",
-        ).textContent = `${fmtTokens(avgTokens)} tokenów / task`;
+        document.getElementById("stat-avg-tokens").textContent =
+          `${fmtTokens(avgTokens)} tokenów / task`;
+      }
+
+      // Render breakdown (cost structure card)
+      function renderBreakdown(items) {
+        const totals = sumBreakdowns(items.map((i) => i.breakdown));
+        const sum =
+          totals.inputPLN +
+          totals.outputPLN +
+          totals.cacheWritePLN +
+          totals.cacheReadPLN;
+
+        const rows = [
+          {
+            key: "input",
+            label: "Input",
+            value: totals.inputPLN,
+            cls: "input",
+          },
+          {
+            key: "output",
+            label: "Output",
+            value: totals.outputPLN,
+            cls: "output",
+          },
+          {
+            key: "cw",
+            label: "Cache write",
+            value: totals.cacheWritePLN,
+            cls: "cw",
+          },
+          {
+            key: "cr",
+            label: "Cache read",
+            value: totals.cacheReadPLN,
+            cls: "cr",
+          },
+        ];
+
+        const container = document.getElementById("breakdown-rows");
+        container.replaceChildren();
+
+        if (sum === 0) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.style.padding = "0.6rem 0";
+          empty.textContent = "Brak danych";
+          container.append(empty);
+          document.getElementById("breakdown-top").textContent =
+            "Najdroższy typ: —";
+          return;
+        }
+
+        let topRow = rows[0];
+        for (const r of rows) if (r.value > topRow.value) topRow = r;
+
+        for (const r of rows) {
+          const pct = (r.value / sum) * 100;
+          const row = document.createElement("div");
+          row.className = "breakdown-row";
+          if (r.key === "output" && pct > 60) row.classList.add("hot");
+          if (r.key === "cr" && r.value > 0) row.classList.add("good");
+
+          const lbl = document.createElement("span");
+          lbl.className = "breakdown-label";
+          lbl.textContent = r.label;
+
+          const barWrap = document.createElement("div");
+          barWrap.className = "breakdown-bar-wrap";
+          const bar = document.createElement("div");
+          bar.className = `breakdown-bar ${r.cls}`;
+          bar.style.width = `${pct.toFixed(1)}%`;
+          barWrap.append(bar);
+
+          const val = document.createElement("span");
+          val.className = "breakdown-value";
+          val.textContent = fmtPLN(r.value);
+
+          const pctEl = document.createElement("span");
+          pctEl.className = "breakdown-pct";
+          pctEl.textContent = `${pct.toFixed(0)}%`;
+
+          row.append(lbl, barWrap, val, pctEl);
+          container.append(row);
+        }
+
+        const labelMap = {
+          input: "INPUT",
+          output: "OUTPUT",
+          cw: "CACHE WRITE",
+          cr: "CACHE READ",
+        };
+        document.getElementById("breakdown-top").textContent =
+          `Najdroższy typ: ${labelMap[topRow.key]} (${fmtPLN(topRow.value)})`;
+      }
+
+      // Canvas helpers
+      function setupCanvas(canvas, cssW, cssH, opts = {}) {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+        if (!opts.skipStyle) {
+          canvas.style.width = `${cssW}px`;
+          canvas.style.height = `${cssH}px`;
+        } else {
+          canvas.style.height = `${cssH}px`;
+        }
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return ctx;
+      }
+
+      // Render donut/pie chart of cost structure
+      let pieState = null;
+      function drawPie(canvas, slices) {
+        const cssW = parseInt(canvas.dataset.w || "320", 10);
+        const cssH = parseInt(canvas.dataset.h || "320", 10);
+        const ctx = setupCanvas(canvas, cssW, cssH);
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        const sum = slices.reduce((s, x) => s + x.value, 0);
+        if (sum === 0) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak danych", cssW / 2, cssH / 2);
+          return null;
+        }
+
+        const cx = cssW / 2;
+        const cy = cssH / 2;
+        const radius = Math.min(cssW, cssH) / 2 - 10;
+        const innerRadius = radius * 0.55;
+
+        let startAngle = -Math.PI / 2;
+        const computed = [];
+        for (const s of slices) {
+          if (s.value <= 0) {
+            computed.push({ ...s, startAngle, endAngle: startAngle });
+            continue;
+          }
+          const sweep = (s.value / sum) * Math.PI * 2;
+          const endAngle = startAngle + sweep;
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, startAngle, endAngle);
+          ctx.arc(cx, cy, innerRadius, endAngle, startAngle, true);
+          ctx.closePath();
+          ctx.fillStyle = s.color;
+          ctx.fill();
+          ctx.strokeStyle = "#1a1d27";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          computed.push({ ...s, startAngle, endAngle });
+          startAngle = endAngle;
+        }
+
+        ctx.fillStyle = "#e2e4f0";
+        ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(fmtPLN(sum), cx, cy - 6);
+        ctx.fillStyle = "#7b80a0";
+        ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+        ctx.fillText("łącznie", cx, cy + 12);
+
+        return { slices: computed, cx, cy, radius, innerRadius, sum };
+      }
+
+      function renderPieChart(items) {
+        const totals = sumBreakdowns(items.map((i) => i.breakdown));
+        const slices = [
+          {
+            key: "input",
+            label: "Input",
+            value: totals.inputPLN,
+            color: "#60a5fa",
+          },
+          {
+            key: "output",
+            label: "Output",
+            value: totals.outputPLN,
+            color: "#f87171",
+          },
+          {
+            key: "cw",
+            label: "Cache write",
+            value: totals.cacheWritePLN,
+            color: "#fbbf24",
+          },
+          {
+            key: "cr",
+            label: "Cache read",
+            value: totals.cacheReadPLN,
+            color: "#10b981",
+          },
+        ];
+        const canvas = document.getElementById("pie-chart");
+        pieState = drawPie(canvas, slices);
+
+        const legend = document.getElementById("pie-legend");
+        legend.replaceChildren();
+        const sum = slices.reduce((s, x) => s + x.value, 0);
+        for (const s of slices) {
+          const item = document.createElement("div");
+          item.className = "pie-legend-item";
+          const sw = document.createElement("span");
+          sw.className = "pie-legend-swatch";
+          sw.style.background = s.color;
+          const lbl = document.createElement("span");
+          lbl.textContent = s.label;
+          const val = document.createElement("span");
+          val.className = "pie-legend-value";
+          val.textContent = fmtPLN(s.value);
+          const pct = document.createElement("span");
+          pct.className = "pie-legend-pct";
+          pct.textContent =
+            sum > 0 ? `${((s.value / sum) * 100).toFixed(0)}%` : "—";
+          item.append(sw, lbl, val, pct);
+          legend.append(item);
+        }
+
+        const tooltip = document.getElementById("pie-tooltip");
+        canvas.onmousemove = (e) => {
+          if (!pieState) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const dx = x - pieState.cx;
+          const dy = y - pieState.cy;
+          const r = Math.sqrt(dx * dx + dy * dy);
+          if (r > pieState.radius || r < pieState.innerRadius) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          let angle = Math.atan2(dy, dx);
+          if (angle < -Math.PI / 2) angle += Math.PI * 2;
+          const hit = pieState.slices.find(
+            (s) => s.value > 0 && angle >= s.startAngle && angle < s.endAngle,
+          );
+          if (!hit) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          tooltip.textContent = `${hit.label}: ${fmtPLN(hit.value)} (${((hit.value / pieState.sum) * 100).toFixed(1)}%)`;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+          tooltip.classList.add("show");
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
+      }
+
+      // Render trend chart
+      const OPTIMIZATION_DATE = "2026-05-27"; // dzień wdrożenia dźwigni optymalizacyjnych
+      let trendState = null;
+
+      function renderTrendChart(items) {
+        const canvas = document.getElementById("trend-chart");
+        const tooltip = document.getElementById("trend-tooltip");
+        const cssH = parseInt(canvas.dataset.h || "240", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        const points = [];
+        for (const it of items) {
+          for (const s of it.sessions) {
+            if (!s.postedAt) continue;
+            const t = new Date(s.postedAt).getTime();
+            if (!Number.isFinite(t)) continue;
+            const cost =
+              s.breakdown.inputPLN +
+              s.breakdown.outputPLN +
+              s.breakdown.cacheWritePLN +
+              s.breakdown.cacheReadPLN;
+            points.push({ t, cost, taskName: it.task.content });
+          }
+        }
+        points.sort((a, b) => a.t - b.t);
+
+        trendState = null;
+        if (points.length === 0) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak danych do wykresu trendów", cssW / 2, cssH / 2);
+          return;
+        }
+
+        const padL = 50;
+        const padR = 20;
+        const padT = 20;
+        const padB = 30;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+
+        const tMin = points[0].t;
+        const tMax = points[points.length - 1].t || tMin + 1;
+        const tRange = Math.max(1, tMax - tMin);
+        const costMax = Math.max(...points.map((p) => p.cost), 0.01);
+
+        const xOf = (t) => padL + ((t - tMin) / tRange) * plotW;
+        const yOf = (c) => padT + plotH - (c / costMax) * plotH;
+
+        // Grid + Y axis labels
+        ctx.strokeStyle = "#2e3249";
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "#7b80a0";
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        const steps = 4;
+        for (let i = 0; i <= steps; i++) {
+          const y = padT + (i / steps) * plotH;
+          const v = costMax * (1 - i / steps);
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(cssW - padR, y);
+          ctx.stroke();
+          ctx.fillText(`${v.toFixed(2)}zł`, padL - 6, y);
+        }
+
+        // X axis date labels (start, mid, end)
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        const fmtShort = (ms) => {
+          const d = new Date(ms);
+          return d.toLocaleDateString("pl-PL", {
+            day: "numeric",
+            month: "short",
+          });
+        };
+        const tickTs = [tMin, tMin + tRange / 2, tMax];
+        for (const ts of tickTs) {
+          ctx.fillText(fmtShort(ts), xOf(ts), cssH - padB + 6);
+        }
+
+        // Optimization marker (vertical green line)
+        const optTs = new Date(OPTIMIZATION_DATE).getTime();
+        if (Number.isFinite(optTs) && optTs >= tMin && optTs <= tMax) {
+          const x = xOf(optTs);
+          ctx.strokeStyle = "#10b981";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath();
+          ctx.moveTo(x, padT);
+          ctx.lineTo(x, padT + plotH);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = "#10b981";
+          ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "left";
+          ctx.fillText("optymalizacja", x + 4, padT + 2);
+        }
+
+        // Trend line (least squares regression)
+        if (points.length >= 2) {
+          const xs = points.map((p) => p.t);
+          const ys = points.map((p) => p.cost);
+          const n = xs.length;
+          const xMean = xs.reduce((s, v) => s + v, 0) / n;
+          const yMean = ys.reduce((s, v) => s + v, 0) / n;
+          let num = 0,
+            den = 0;
+          for (let i = 0; i < n; i++) {
+            num += (xs[i] - xMean) * (ys[i] - yMean);
+            den += (xs[i] - xMean) ** 2;
+          }
+          if (den > 0) {
+            const slope = num / den;
+            const intercept = yMean - slope * xMean;
+            const y1 = slope * tMin + intercept;
+            const y2 = slope * tMax + intercept;
+            ctx.strokeStyle = "#fbbf24";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath();
+            ctx.moveTo(xOf(tMin), yOf(Math.max(0, y1)));
+            ctx.lineTo(xOf(tMax), yOf(Math.max(0, y2)));
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+
+        // Main line + points
+        ctx.strokeStyle = "#60a5fa";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        points.forEach((p, i) => {
+          const x = xOf(p.t);
+          const y = yOf(p.cost);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        const pointGeom = [];
+        for (const p of points) {
+          const x = xOf(p.t);
+          const y = yOf(p.cost);
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#60a5fa";
+          ctx.fill();
+          ctx.strokeStyle = "#0f1117";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          pointGeom.push({ ...p, x, y });
+        }
+
+        trendState = { points: pointGeom };
+
+        canvas.onmousemove = (e) => {
+          if (!trendState) return;
+          const rect = canvas.getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+          let best = null;
+          let bestDist = Infinity;
+          for (const p of trendState.points) {
+            const d = Math.hypot(p.x - mx, p.y - my);
+            if (d < bestDist) {
+              bestDist = d;
+              best = p;
+            }
+          }
+          if (best && bestDist < 18) {
+            const d = new Date(best.t).toLocaleDateString("pl-PL", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            });
+            const name =
+              best.taskName.length > 30
+                ? best.taskName.slice(0, 30) + "…"
+                : best.taskName;
+            tooltip.replaceChildren();
+            const nameDiv = document.createElement("div");
+            nameDiv.textContent = name;
+            const lineDiv = document.createElement("div");
+            lineDiv.textContent = `${d}: ${fmtPLN(best.cost)}`;
+            tooltip.append(nameDiv, lineDiv);
+            tooltip.style.left = `${best.x}px`;
+            tooltip.style.top = `${best.y}px`;
+            tooltip.classList.add("show");
+          } else {
+            tooltip.classList.remove("show");
+          }
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
       }
 
       // Render table
@@ -948,7 +1928,7 @@
         if (items.length === 0) {
           const tr = document.createElement("tr");
           const td = document.createElement("td");
-          td.colSpan = 8;
+          td.colSpan = 9;
           td.className = "empty-state";
           td.textContent = "Brak tasków z danymi kosztowymi";
           tr.append(td);
@@ -963,6 +1943,18 @@
         for (const item of sorted) {
           const sec = SECTIONS[item.task.section_id];
           const tr = document.createElement("tr");
+          tr.className = "task-row";
+
+          const total =
+            item.breakdown.inputPLN +
+            item.breakdown.outputPLN +
+            item.breakdown.cacheWritePLN +
+            item.breakdown.cacheReadPLN;
+          const outputPct =
+            total > 0 ? (item.breakdown.outputPLN / total) * 100 : 0;
+          const outputHot = outputPct > 60;
+          const outputAlert = outputPct > 70;
+          if (outputAlert) tr.classList.add("alert-output");
 
           // Name
           const tdName = document.createElement("td");
@@ -990,16 +1982,45 @@
           const tdTokens = document.createElement("td");
           tdTokens.className = "num-cell";
           tdTokens.textContent = fmtTokens(item.totalTokens);
-          if (item.totalInputTokens || item.totalOutputTokens) {
-            const parts = [`in: ${fmtTokens(item.totalInputTokens)}`, `out: ${fmtTokens(item.totalOutputTokens)}`];
-            if (item.totalCacheReadTokens) parts.push(`cache: ${fmtTokens(item.totalCacheReadTokens)}`);
-            tdTokens.title = parts.join(" | ");
-          }
+          tdTokens.title =
+            `in: ${fmtTokens(item.totalInputTokens)} | ` +
+            `out: ${fmtTokens(item.totalOutputTokens)} | ` +
+            `cache R: ${fmtTokens(item.totalCacheReadTokens)} | ` +
+            `cache W: ${fmtTokens(item.totalCacheWriteTokens)}`;
 
-          // Cost PLN
+          // Cost PLN (+ alert)
           const tdCost = document.createElement("td");
           tdCost.className = "num-cell";
-          tdCost.textContent = fmtPLN(item.totalCostPLN);
+          const costSpan = document.createElement("span");
+          costSpan.textContent = fmtPLN(item.totalCostPLN);
+          if (outputHot) costSpan.classList.add("cost-hot");
+          tdCost.append(costSpan);
+          if (outputAlert) {
+            const alertEl = document.createElement("span");
+            alertEl.className = "alert-icon";
+            alertEl.textContent = "⚠️";
+            alertEl.title = `Output dominuje koszt (${outputPct.toFixed(0)}%) — rozważ krótsze odpowiedzi`;
+            tdCost.append(alertEl);
+          }
+
+          // Model
+          const tdModel = document.createElement("td");
+          const modelKeys = Object.keys(item.modelCounts);
+          if (modelKeys.length > 0) {
+            const wrap = document.createElement("div");
+            wrap.className = "tag-list";
+            for (const m of modelKeys) {
+              const tag = document.createElement("span");
+              tag.className = "tag-item";
+              tag.textContent = shortModel(m);
+              tag.title = m;
+              wrap.append(tag);
+            }
+            tdModel.append(wrap);
+          } else {
+            tdModel.textContent = "—";
+            tdModel.style.color = "var(--text-muted)";
+          }
 
           // Skills
           const tdSkills = document.createElement("td");
@@ -1056,12 +2077,124 @@
             tdSessions,
             tdTokens,
             tdCost,
+            tdModel,
             tdSkills,
             tdAgents,
             tdDate,
           );
-          tbody.append(tr);
+
+          // Expand row (hidden by default)
+          const expandTr = document.createElement("tr");
+          expandTr.className = "expand-row";
+          expandTr.style.display = "none";
+          const expandTd = document.createElement("td");
+          expandTd.colSpan = 9;
+          expandTd.append(buildExpandPanel(item));
+          expandTr.append(expandTd);
+
+          tr.addEventListener("click", () => {
+            const isOpen = expandTr.style.display !== "none";
+            expandTr.style.display = isOpen ? "none" : "table-row";
+            tr.classList.toggle("expanded", !isOpen);
+          });
+
+          tbody.append(tr, expandTr);
         }
+      }
+
+      function shortModel(m) {
+        if (!m) return "—";
+        const k = m.toLowerCase();
+        if (k.includes("opus")) return "Opus";
+        if (k.includes("haiku")) return "Haiku";
+        if (k.includes("sonnet")) return "Sonnet";
+        return m;
+      }
+
+      function buildExpandPanel(item) {
+        const grid = document.createElement("div");
+        grid.className = "expand-grid";
+
+        const total =
+          item.breakdown.inputPLN +
+          item.breakdown.outputPLN +
+          item.breakdown.cacheWritePLN +
+          item.breakdown.cacheReadPLN;
+        const pct = (v) =>
+          total > 0 ? `${((v / total) * 100).toFixed(0)}%` : "—";
+
+        const items = [
+          {
+            label: "Input",
+            valuePLN: item.breakdown.inputPLN,
+            tokens: item.totalInputTokens,
+          },
+          {
+            label: "Output",
+            valuePLN: item.breakdown.outputPLN,
+            tokens: item.totalOutputTokens,
+            hot: total > 0 && item.breakdown.outputPLN / total > 0.6,
+          },
+          {
+            label: "Cache write",
+            valuePLN: item.breakdown.cacheWritePLN,
+            tokens: item.totalCacheWriteTokens,
+          },
+          {
+            label: "Cache read",
+            valuePLN: item.breakdown.cacheReadPLN,
+            tokens: item.totalCacheReadTokens,
+            good: item.breakdown.cacheReadPLN > 0,
+          },
+        ];
+
+        for (const it of items) {
+          const cell = document.createElement("div");
+          cell.className = "expand-item";
+          if (it.hot) cell.classList.add("hot");
+          if (it.good) cell.classList.add("good");
+          const lbl = document.createElement("div");
+          lbl.className = "expand-item-label";
+          lbl.textContent = `${it.label} (${pct(it.valuePLN)})`;
+          const val = document.createElement("div");
+          val.className = "expand-item-value";
+          val.textContent = fmtPLN(it.valuePLN);
+          const sub = document.createElement("div");
+          sub.className = "expand-item-sub";
+          sub.textContent = `${fmtTokens(it.tokens)} tokenów`;
+          cell.append(lbl, val, sub);
+          grid.append(cell);
+        }
+
+        const wrap = document.createElement("div");
+        wrap.append(grid);
+
+        const modelLine = document.createElement("div");
+        modelLine.className = "expand-model";
+        const modelEntries = Object.entries(item.modelCounts);
+        const modelStr =
+          modelEntries.length === 0
+            ? "—"
+            : modelEntries.map(([m, c]) => `${m} (×${c})`).join(", ");
+
+        const makeMeta = (label, value) => {
+          const span = document.createElement("span");
+          span.append(document.createTextNode(`${label}: `));
+          const strong = document.createElement("strong");
+          strong.textContent = value;
+          span.append(strong);
+          return span;
+        };
+
+        modelLine.append(
+          makeMeta("Sesji", String(item.totalSessions)),
+          makeMeta("Model", modelStr),
+          makeMeta("Tokeny", fmtTokens(item.totalTokens)),
+          makeMeta("Suma składowych", fmtPLN(total)),
+        );
+        wrap.append(modelLine);
+
+        return wrap;
       }
 
       // Render chart
@@ -1103,9 +2236,7 @@
 
           const label = document.createElement("div");
           label.className = "bar-label";
-          const name = item.task.content
-            .replace(/^[⭐🔧📋]/u, "")
-            .trim();
+          const name = item.task.content.replace(/^[⭐🔧📋]/u, "").trim();
           label.textContent = name.length > 12 ? name.slice(0, 12) + "…" : name;
           label.title = item.task.content;
 
@@ -1161,16 +2292,19 @@
       }
 
       // Show analytics content
-      function render(items) {
+      function render({ costItems: items, bugTasks }) {
         renderSummary(items);
+        renderBreakdown(items);
         renderTable(items);
         renderChart(items);
+        renderPieChart(items);
+        renderTrendChart(items);
         renderRankings(items);
+        renderBugs(bugTasks);
         document.getElementById("loading").style.display = "none";
         document.getElementById("analytics-content").style.display = "block";
         document.getElementById("footer").style.display = "block";
-        document.getElementById("year").textContent =
-          new Date().getFullYear();
+        document.getElementById("year").textContent = new Date().getFullYear();
       }
 
       // Setup screen
@@ -1188,21 +2322,18 @@
       document
         .getElementById("token-save")
         .addEventListener("click", async () => {
-          const token = document
-            .getElementById("token-input")
-            .value.trim();
+          const token = document.getElementById("token-input").value.trim();
           if (!token) return;
           hideSetup();
           document.getElementById("loading").style.display = "block";
           try {
-            const items = await loadData(token);
+            const data = await loadData(token);
             saveToken(token);
-            render(items);
+            render(data);
           } catch (err) {
             document.getElementById("loading").style.display = "none";
-            document.getElementById(
-              "token-error",
-            ).textContent = `Błąd: ${err.message}`;
+            document.getElementById("token-error").textContent =
+              `Błąd: ${err.message}`;
             document.getElementById("token-error").style.display = "block";
             showSetup();
           }
@@ -1224,8 +2355,8 @@
         }
         document.getElementById("loading").style.display = "block";
         try {
-          const items = await loadData(token);
-          render(items);
+          const data = await loadData(token);
+          render(data);
         } catch (err) {
           showToast(`Błąd ładowania: ${err.message}`, true);
           showSetup();
