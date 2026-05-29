@@ -760,6 +760,36 @@
       .vel-trend-down {
         color: #10b981;
       }
+
+      /* --- Deep linking błędów --- */
+      .bug-link {
+        color: inherit;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .bug-link:hover {
+        text-decoration: underline;
+        opacity: 0.85;
+      }
+      .bug-link .link-icon {
+        font-size: 0.75em;
+        margin-left: 4px;
+        opacity: 0;
+        transition: opacity 0.12s;
+      }
+      .bug-link:hover .link-icon,
+      .bug-link:focus-visible .link-icon {
+        opacity: 0.7;
+      }
+      .bug-stat-link {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+      }
+      .bug-stat-link:hover {
+        opacity: 0.85;
+      }
       .trend-legend {
         display: flex;
         flex-wrap: wrap;
@@ -1449,6 +1479,17 @@
         return "—";
       }
 
+      // Deep linking — URL konkretnego taska / projektu w Todoist
+      function todoistTaskUrl(id) {
+        return `https://app.todoist.com/app/task/${id}`;
+      }
+      function todoistProjectUrl(id) {
+        return `https://app.todoist.com/app/project/${id}`;
+      }
+      function bugPrioLabel(priority) {
+        return priority === 4 ? "P1" : priority === 3 ? "P2" : "P3";
+      }
+
       function renderBugs(bugTasks) {
         const summary = document.getElementById("bugs-summary");
         const tbody = document.getElementById("bugs-tbody");
@@ -1459,8 +1500,13 @@
         const p2 = bugTasks.filter((t) => t.priority === 3).length;
         const p3 = bugTasks.length - p1 - p2;
 
-        for (const { count, label, color } of [
-          { count: bugTasks.length, label: "Łącznie otwartych", color: "" },
+        for (const { count, label, color, href } of [
+          {
+            count: bugTasks.length,
+            label: "Łącznie otwartych",
+            color: "",
+            href: todoistProjectUrl(PROJECT_ID),
+          },
           { count: p1, label: "🔴 Krytycznych", color: "bug-critical" },
           { count: p2, label: "🟡 Poważnych", color: "bug-warning" },
           { count: p3, label: "🟢 Drobnych", color: "bug-minor" },
@@ -1473,7 +1519,18 @@
           const lEl = document.createElement("div");
           lEl.className = "bug-stat-label";
           lEl.textContent = label;
-          div.append(cEl, lEl);
+          if (href) {
+            const a = document.createElement("a");
+            a.className = "bug-stat-link";
+            a.href = href;
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.title = "Otwórz projekt w Todoist";
+            a.append(cEl, lEl);
+            div.append(a);
+          } else {
+            div.append(cEl, lEl);
+          }
           summary.append(div);
         }
 
@@ -1496,11 +1553,23 @@
 
           const tdName = document.createElement("td");
           tdName.className = "task-name-cell";
+          const link = document.createElement("a");
+          link.className = "bug-link";
+          link.href = todoistTaskUrl(task.id);
+          link.target = "_blank";
+          link.rel = "noopener";
+          link.title =
+            `Kliknij aby otworzyć w Todoist\n` +
+            `Status: Otwarty | Priorytet: ${bugPrioLabel(task.priority)}\n` +
+            `Znaleziony: ${fmtDate(task.created_at)}`;
           const ns = document.createElement("span");
           ns.className = "task-name-text";
           ns.textContent = task.content;
-          ns.title = task.content;
-          tdName.append(ns);
+          const icon = document.createElement("span");
+          icon.className = "link-icon";
+          icon.textContent = "↗️";
+          link.append(ns, icon);
+          tdName.append(link);
 
           const tdSev = document.createElement("td");
           const badge = document.createElement("span");
