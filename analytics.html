@@ -177,6 +177,17 @@
         border-color: var(--accent-dim);
         color: var(--text);
       }
+      .section-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .section-title-row .section-title {
+        margin-bottom: 0;
+      }
 
       /* --- Loading --- */
       .loading-overlay {
@@ -966,7 +977,10 @@
 
       <!-- B: Task history table -->
       <div class="section-block">
-        <div class="section-title"><span>📋</span> Historia tasków</div>
+        <div class="section-title-row">
+          <div class="section-title"><span>📋</span> Historia tasków</div>
+          <button type="button" class="btn-reset" id="btn-export-csv">⬇ Eksportuj CSV</button>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -2242,6 +2256,68 @@
           tbody.append(tr, expandTr);
         }
       }
+
+      function exportCSV(items) {
+        const escape = (v) => {
+          const s = String(v ?? "");
+          return s.includes(",") || s.includes('"') || s.includes("\n")
+            ? `"${s.replace(/"/g, '""')}"`
+            : s;
+        };
+        const rows = [
+          [
+            "Nazwa taska",
+            "Status",
+            "Sesji",
+            "Tokeny łącznie",
+            "Tokeny input",
+            "Tokeny output",
+            "Tokeny cache read",
+            "Tokeny cache write",
+            "Koszt USD",
+            "Koszt PLN",
+            "Model",
+            "Skille",
+            "Agenci",
+            "Ostatnia aktywność",
+          ],
+        ];
+        for (const item of applyTableSort(items)) {
+          const sec = SECTIONS[item.task.section_id];
+          const models = Object.keys(item.modelCounts).join("; ");
+          const skills = Object.keys(item.skillCounts).join("; ");
+          const agents = Object.keys(item.agentCounts).join("; ");
+          rows.push([
+            item.task.content,
+            sec ? sec.name : item.task.section_id,
+            item.totalSessions,
+            item.totalTokens,
+            item.totalInputTokens,
+            item.totalOutputTokens,
+            item.totalCacheReadTokens,
+            item.totalCacheWriteTokens,
+            item.totalCostUSD.toFixed(4),
+            item.totalCostPLN.toFixed(4),
+            models,
+            skills,
+            agents,
+            item.lastActivity || "",
+          ]);
+        }
+        const csv =
+          "﻿" + rows.map((r) => r.map(escape).join(",")).join("\r\n");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      document.getElementById("btn-export-csv").addEventListener("click", () => {
+        exportCSV(lastCostItems);
+      });
 
       function shortModel(m) {
         if (!m) return "—";
