@@ -377,6 +377,23 @@
         text-align: right;
         font-variant-numeric: tabular-nums;
       }
+      th.sortable {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+      }
+      th.sortable:hover {
+        color: var(--accent);
+      }
+      th.sort-active {
+        color: var(--accent);
+      }
+      .sort-arrow {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 0.75em;
+        opacity: 0.7;
+      }
 
       /* --- Expandable task rows --- */
       tbody tr.task-row {
@@ -956,13 +973,13 @@
               <tr>
                 <th>Nazwa taska</th>
                 <th>Status</th>
-                <th>Sesji</th>
-                <th class="num-cell">Tokeny</th>
-                <th class="num-cell">Koszt PLN</th>
+                <th class="sortable" data-sort="sessions">Sesji<span class="sort-arrow"></span></th>
+                <th class="sortable num-cell" data-sort="tokens">Tokeny<span class="sort-arrow"></span></th>
+                <th class="sortable num-cell" data-sort="cost">Koszt PLN<span class="sort-arrow"></span></th>
                 <th>Model</th>
                 <th>Skille</th>
                 <th>Agenci</th>
-                <th>Ostatnia aktywność</th>
+                <th class="sortable" data-sort="date">Ostatnia aktywność<span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="tasks-tbody"></tbody>
@@ -2018,6 +2035,34 @@
       }
 
       // Render table
+      const tableSort = { key: "cost", asc: false };
+
+      function applyTableSort(items) {
+        const getVal = (item) => {
+          if (tableSort.key === "cost") return item.totalCostPLN;
+          if (tableSort.key === "tokens") return item.totalTokens;
+          if (tableSort.key === "sessions") return item.totalSessions;
+          if (tableSort.key === "date")
+            return item.lastActivity ? new Date(item.lastActivity).getTime() : 0;
+          return 0;
+        };
+        return [...items].sort((a, b) => {
+          const diff = getVal(a) - getVal(b);
+          return tableSort.asc ? diff : -diff;
+        });
+      }
+
+      function updateSortHeaders() {
+        const ths = document.querySelectorAll("th.sortable");
+        ths.forEach((th) => {
+          const key = th.dataset.sort;
+          const arrow = th.querySelector(".sort-arrow");
+          th.classList.toggle("sort-active", key === tableSort.key);
+          arrow.textContent =
+            key === tableSort.key ? (tableSort.asc ? " ↑" : " ↓") : "";
+        });
+      }
+
       function renderTable(items) {
         const tbody = document.getElementById("tasks-tbody");
         tbody.replaceChildren();
@@ -2033,9 +2078,8 @@
           return;
         }
 
-        const sorted = [...items].sort(
-          (a, b) => b.totalCostPLN - a.totalCostPLN,
-        );
+        const sorted = applyTableSort(items);
+        updateSortHeaders();
 
         for (const item of sorted) {
           const sec = SECTIONS[item.task.section_id];
@@ -3015,10 +3059,32 @@
       }
 
       // Show analytics content
+      let sortListenersInitialized = false;
+      let lastCostItems = [];
+
+      function initSortListeners() {
+        if (sortListenersInitialized) return;
+        sortListenersInitialized = true;
+        document.querySelectorAll("th.sortable").forEach((th) => {
+          th.addEventListener("click", () => {
+            const key = th.dataset.sort;
+            if (tableSort.key === key) {
+              tableSort.asc = !tableSort.asc;
+            } else {
+              tableSort.key = key;
+              tableSort.asc = false;
+            }
+            renderTable(lastCostItems);
+          });
+        });
+      }
+
       function render({ costItems: items, bugTasks }) {
+        lastCostItems = items;
         renderSummary(items);
         renderBreakdown(items);
         renderTable(items);
+        initSortListeners();
         renderChart(items);
         renderPieChart(items);
         renderTrendChart(items);
