@@ -44,13 +44,17 @@ test('bugPrioLabel mapuje priorytet API na etykietę', () => {
   assert.equal(urlFns.bugPrioLabel(2), 'P3');
 });
 
-test('renderBugs tworzy anchor nazwy błędu z target/rel i ikoną', () => {
-  const fn = grab('renderBugs');
+test('bugNameCell tworzy anchor nazwy błędu z target/rel, ikoną i tooltipem', () => {
+  // Po refaktorze (task lista otwarte/zamknięte) link nazwy buduje helper bugNameCell.
+  const fn = grab('bugNameCell');
   assert.match(fn, /todoistTaskUrl\(task\.id\)/, 'Link nazwy nie używa todoistTaskUrl(task.id)');
   assert.match(fn, /\.target\s*=\s*["']_blank["']/, 'Brak target=_blank');
   assert.match(fn, /\.rel\s*=\s*["']noopener["']/, 'Brak rel=noopener');
   assert.match(fn, /link-icon/, 'Brak ikony ↗️ (link-icon)');
   assert.match(fn, /Priorytet:|Status:/, 'Brak tooltipa ze statusem/priorytetem');
+  // renderBugs faktycznie używa helpera dla obu sekcji
+  const rb = grab('renderBugs');
+  assert.match(rb, /bugNameCell\(/, 'renderBugs nie używa bugNameCell');
 });
 
 test('karta "Łącznie otwartych" linkuje do projektu', () => {
