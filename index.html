@@ -403,6 +403,29 @@
         background: rgba(16, 185, 129, 0.15);
       }
 
+      /* --- Card entry animation --- */
+      @keyframes cardFadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .task-card.animate-in {
+        animation: cardFadeIn 0.2s ease both;
+      }
+
+      /* --- Priority border --- */
+      .task-card.priority-p1 {
+        border-left: 3px solid var(--bugs-color);
+      }
+      .task-card.priority-p2 {
+        border-left: 3px solid var(--backlog-color);
+      }
+
       /* --- Completing animation --- */
       .task-card.completing {
         opacity: 0;
@@ -410,6 +433,24 @@
         transition:
           opacity 0.25s,
           transform 0.25s;
+      }
+
+      /* --- Mobile (<480px) --- */
+      @media (max-width: 480px) {
+        body {
+          padding: 1rem;
+        }
+        h1 {
+          font-size: 1.2rem;
+        }
+        .header-sub {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.4rem;
+        }
+        .board {
+          grid-template-columns: 1fr;
+        }
       }
 
       /* --- Toast --- */
@@ -690,9 +731,13 @@
       }
 
       // --- Render ---
-      function makeTaskCard(task, isDone) {
+      function makeTaskCard(task, isDone, animate = false) {
         const card = document.createElement("div");
-        card.className = "task-card";
+        const classes = ["task-card"];
+        if (animate) classes.push("animate-in");
+        if (!isDone && task.priority === 4) classes.push("priority-p1");
+        else if (!isDone && task.priority === 3) classes.push("priority-p2");
+        card.className = classes.join(" ");
 
         const top = document.createElement("div");
         top.className = "task-top";
@@ -762,7 +807,11 @@
           return;
         }
         const isDone = columnKey === "done";
-        list.append(...tasks.map((t) => makeTaskCard(t, isDone)));
+        list.append(...tasks.map((t, i) => {
+          const card = makeTaskCard(t, isDone, true);
+          card.style.animationDelay = `${i * 30}ms`;
+          return card;
+        }));
       }
 
       function renderDate(tasksBySection) {
@@ -775,13 +824,17 @@
             day: "numeric",
           });
         document.getElementById("year").textContent = now.getFullYear();
-        const total = Object.values(tasksBySection).reduce(
-          (s, a) => s + a.length,
-          0,
-        );
+        const b = (tasksBySection.backlog || []).length;
+        const ip = (tasksBySection.inprog || []).length;
+        const bugs = (tasksBySection.bugs || []).length;
         const done = (tasksBySection.done || []).length;
-        document.getElementById("statsBar").textContent =
-          `${done} z ${total} zadań ukończonych`;
+        const parts = [
+          `📋 Backlog: ${b}`,
+          `⚡ W trakcie: ${ip}`,
+          bugs > 0 ? `🐛 Bugi: ${bugs}` : null,
+          `✅ Zrobione: ${done}`,
+        ].filter(Boolean);
+        document.getElementById("statsBar").textContent = parts.join("  ·  ");
       }
 
       function showError(msg) {
