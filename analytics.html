@@ -830,6 +830,47 @@
           font-size: 1.4rem;
         }
       }
+      .po-subtitle {
+        margin: 1.25rem 0 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .po-table-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.25rem 0 0.5rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .po-table-controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+      }
+      .po-history {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.82rem;
+        font-family: "Consolas", "Courier New", monospace;
+        color: var(--text-muted);
+      }
+      .po-dot-green {
+        color: #10b981;
+      }
+      .po-dot-yellow {
+        color: #fbbf24;
+      }
+      .po-dot-red {
+        color: #f87171;
+      }
+      .po-dot-gray {
+        color: #7b80a0;
+      }
     </style>
   </head>
   <body>
@@ -1006,6 +1047,62 @@
             Wdrożenie optymalizacji
           </span>
         </div>
+      </div>
+
+      <!-- G: PO learning / estimate accuracy -->
+      <div class="section-block">
+        <div class="section-title"><span>🎯</span> Jak uczy się PO</div>
+
+        <div class="summary-grid" id="po-accuracy-summary"></div>
+
+        <div class="po-subtitle">Błąd estymaty per task (im niżej tym lepiej)</div>
+        <div class="trend-wrap">
+          <canvas id="po-scatter-chart" data-h="260"></canvas>
+          <div class="canvas-tooltip" id="po-scatter-tooltip"></div>
+        </div>
+
+        <div class="po-subtitle">Estymata vs realny koszt (USD)</div>
+        <div class="trend-wrap">
+          <canvas id="po-bar-chart" data-h="260"></canvas>
+          <div class="canvas-tooltip" id="po-bar-tooltip"></div>
+        </div>
+
+        <div class="po-table-controls">
+          <label>
+            <input type="checkbox" id="po-filter-error" />
+            Pokaż tylko błąd &gt; 20%
+          </label>
+          <button type="button" class="btn-reset" id="po-sort-error">
+            Sortuj po błędzie: malejąco
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th class="num-cell">Estymata</th>
+                <th class="num-cell">Realne</th>
+                <th class="num-cell">Błąd %</th>
+                <th>Kategoria</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody id="po-accuracy-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="po-subtitle">
+          Wzorce błędów (kategoryzacja heurystyczna z danych Todoist)
+        </div>
+        <div class="pie-wrap">
+          <canvas id="po-pie-chart" data-w="280" data-h="280"></canvas>
+          <div class="pie-legend" id="po-pie-legend"></div>
+          <div class="canvas-tooltip" id="po-pie-tooltip"></div>
+        </div>
+
+        <div class="po-subtitle">Historia uczenia się (średni błąd per tydzień)</div>
+        <div class="po-history" id="po-history-timeline"></div>
       </div>
     </main>
 
@@ -2291,6 +2388,632 @@
         buildRank("rank-agents", agentTotals);
       }
 
+      // ===== Sekcja: Jak uczy się PO (skuteczność estymat) =====
+      // Estymata zapisywana przez /po-estymuj w opisie taska w kanonicznym formacie:
+      // 💡 ESTYMATA: $min—$max (pewność: XX%) | YYYY-MM-DD
+      function parsePOEstimate(desc) {
+        if (!desc) return null;
+        const m = desc.match(
+          /💡\s*ESTYMATA:\s*\$?\s*([\d.]+)\s*[—–-]\s*\$?\s*([\d.]+)(?:\s*\(pewność:\s*(\d+)\s*%\))?(?:\s*\|\s*(\d{4}-\d{2}-\d{2}))?/i,
+        );
+        if (!m) return null;
+        const min = parseFloat(m[1]);
+        const max = parseFloat(m[2]);
+        if (!isFinite(min) || !isFinite(max)) return null;
+        return {
+          min,
+          max,
+          mid: (min + max) / 2,
+          confidence: m[3] ? parseInt(m[3], 10) : null,
+          date: m[4] || null,
+        };
+      }
+
+      function poErrStyle(errPct) {
+        if (errPct == null) return { hex: "#7b80a0", cls: "po-dot-gray" };
+        if (errPct < 20) return { hex: "#10b981", cls: "po-dot-green" };
+        if (errPct <= 50) return { hex: "#fbbf24", cls: "po-dot-yellow" };
+        return { hex: "#f87171", cls: "po-dot-red" };
+      }
+
+      // Kategoryzacja heurystyczna (po-knowledge.md nie jest dostępne z przeglądarki —
+      // statyczna strona + Todoist REST API; kategorie wyprowadzane z danych Todoist).
+      function categorizePOError(item, errPct) {
+        if (item.totalSessions >= 3) return "Iteracje bugów";
+        if (errPct != null && errPct > 50 && item.totalSessions <= 1)
+          return "Złe wymagania";
+        if (item.totalTokens > 200000) return "Długa sesja";
+        return "Inne";
+      }
+
+      function buildPORows(items) {
+        const rows = [];
+        for (const it of items) {
+          const est = parsePOEstimate(it.task.description);
+          const real = it.totalCostUSD;
+          if (!est) {
+            rows.push({
+              name: it.task.content,
+              est: null,
+              estMin: null,
+              estMax: null,
+              real,
+              errPct: null,
+              category: null,
+              date: null,
+              confidence: null,
+              hasEst: false,
+            });
+            continue;
+          }
+          const errPct =
+            est.mid > 0 ? (Math.abs(real - est.mid) / est.mid) * 100 : null;
+          rows.push({
+            name: it.task.content,
+            est: est.mid,
+            estMin: est.min,
+            estMax: est.max,
+            real,
+            errPct,
+            category: categorizePOError(it, errPct),
+            date: est.date,
+            confidence: est.confidence,
+            hasEst: true,
+          });
+        }
+        rows.sort((a, b) => {
+          if (a.date && b.date) return a.date.localeCompare(b.date);
+          if (a.date) return -1;
+          if (b.date) return 1;
+          return 0;
+        });
+        return rows;
+      }
+
+      function poIsoWeek(dateStr) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr + "T00:00:00");
+        if (isNaN(d.getTime())) return null;
+        const tmp = new Date(
+          Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()),
+        );
+        const day = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - day);
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+        const week = Math.ceil(((tmp - yearStart) / 86400000 + 1) / 7);
+        return `${tmp.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+      }
+
+      const poState = {
+        rows: [],
+        withEst: [],
+        sortAsc: false,
+        filterOnly: false,
+        bound: false,
+      };
+
+      function renderPOSummary() {
+        const el = document.getElementById("po-accuracy-summary");
+        el.replaceChildren();
+        const w = poState.withEst;
+
+        const mkCard = (label, value, valueCls, sub) => {
+          const card = document.createElement("div");
+          card.className = "stat-card";
+          const l = document.createElement("div");
+          l.className = "stat-label";
+          l.textContent = label;
+          const v = document.createElement("div");
+          v.className = valueCls ? `stat-value ${valueCls}` : "stat-value";
+          v.textContent = value;
+          const s = document.createElement("div");
+          s.className = "stat-sub";
+          s.textContent = sub;
+          card.append(l, v, s);
+          el.append(card);
+        };
+
+        if (w.length === 0) {
+          mkCard(
+            "🎯 Dokładność PO",
+            "—",
+            "",
+            "Brak estymat — dodaj 💡 ESTYMATA do tasków przez /po-estymuj",
+          );
+          return;
+        }
+
+        const avg = w.reduce((s, r) => s + r.errPct, 0) / w.length;
+        const best = w.reduce((a, b) => (b.errPct < a.errPct ? b : a));
+        const worst = w.reduce((a, b) => (b.errPct > a.errPct ? b : a));
+
+        let trendTxt = "→ za mało danych";
+        if (w.length >= 2) {
+          const half = Math.floor(w.length / 2);
+          const firstAvg =
+            w.slice(0, half).reduce((s, r) => s + r.errPct, 0) / half;
+          const secondAvg =
+            w.slice(half).reduce((s, r) => s + r.errPct, 0) /
+            (w.length - half);
+          if (secondAvg < firstAvg - 2) trendTxt = "↓ maleje (PO się uczy)";
+          else if (secondAvg > firstAvg + 2) trendTxt = "↑ rośnie";
+          else trendTxt = "→ stabilnie";
+        }
+
+        mkCard(
+          "🎯 Średni błąd",
+          `${avg.toFixed(0)}%`,
+          poErrStyle(avg).cls === "po-dot-green" ? "green" : "accent",
+          `${w.length} tasków z estymatą`,
+        );
+        mkCard(
+          "🏆 Najlepsza estymata",
+          `${best.errPct.toFixed(0)}%`,
+          "green",
+          best.name.slice(0, 32),
+        );
+        mkCard(
+          "⚠️ Najgorsza estymata",
+          `${worst.errPct.toFixed(0)}%`,
+          "",
+          worst.name.slice(0, 32),
+        );
+        mkCard("📈 Trend", trendTxt, "", "pierwsza vs druga połowa tasków");
+      }
+
+      let poScatterState = null;
+      function drawPOScatter() {
+        const canvas = document.getElementById("po-scatter-chart");
+        const tooltip = document.getElementById("po-scatter-tooltip");
+        const cssH = parseInt(canvas.dataset.h || "260", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+        poScatterState = null;
+
+        const w = poState.withEst;
+        if (w.length === 0) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak estymat do pokazania", cssW / 2, cssH / 2);
+          return;
+        }
+
+        const padL = 44,
+          padR = 16,
+          padT = 16,
+          padB = 28;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+        const maxErr = Math.max(100, ...w.map((r) => r.errPct));
+        const yMax = Math.ceil(maxErr / 20) * 20;
+
+        // gridlines + etykiety osi Y
+        ctx.strokeStyle = "#2a2e3c";
+        ctx.fillStyle = "#7b80a0";
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = 1;
+        for (const gy of [0, 20, 50, 100].filter((v) => v <= yMax)) {
+          const py = padT + plotH - (gy / yMax) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padL, py);
+          ctx.lineTo(padL + plotW, py);
+          ctx.stroke();
+          ctx.fillText(`${gy}%`, padL - 6, py);
+        }
+
+        const xOf = (i) =>
+          w.length === 1
+            ? padL + plotW / 2
+            : padL + (i / (w.length - 1)) * plotW;
+        const yOf = (err) => padT + plotH - (Math.min(err, yMax) / yMax) * plotH;
+
+        // linia trendu (najmniejsze kwadraty)
+        if (w.length >= 2) {
+          const n = w.length;
+          let sx = 0,
+            sy = 0,
+            sxy = 0,
+            sxx = 0;
+          w.forEach((r, i) => {
+            sx += i;
+            sy += r.errPct;
+            sxy += i * r.errPct;
+            sxx += i * i;
+          });
+          const denom = n * sxx - sx * sx;
+          if (denom !== 0) {
+            const slope = (n * sxy - sx * sy) / denom;
+            const intercept = (sy - slope * sx) / n;
+            ctx.strokeStyle = "#fbbf24";
+            ctx.setLineDash([5, 4]);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(xOf(0), yOf(intercept));
+            ctx.lineTo(xOf(n - 1), yOf(intercept + slope * (n - 1)));
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+
+        // punkty
+        const pts = [];
+        w.forEach((r, i) => {
+          const px = xOf(i);
+          const py = yOf(r.errPct);
+          ctx.beginPath();
+          ctx.arc(px, py, 5, 0, Math.PI * 2);
+          ctx.fillStyle = poErrStyle(r.errPct).hex;
+          ctx.fill();
+          ctx.strokeStyle = "#1a1d27";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          pts.push({ px, py, row: r });
+        });
+        poScatterState = { pts };
+
+        canvas.onmousemove = (e) => {
+          if (!poScatterState) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const hit = poScatterState.pts.find(
+            (p) => Math.hypot(p.px - x, p.py - y) <= 8,
+          );
+          if (!hit) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          const r = hit.row;
+          tooltip.textContent = `${r.name}: est $${r.est.toFixed(2)} / real $${r.real.toFixed(2)} → błąd ${r.errPct.toFixed(0)}%`;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+          tooltip.classList.add("show");
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
+      }
+
+      let poBarState = null;
+      function drawPOBars() {
+        const canvas = document.getElementById("po-bar-chart");
+        const tooltip = document.getElementById("po-bar-tooltip");
+        const cssH = parseInt(canvas.dataset.h || "260", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+        poBarState = null;
+
+        const w = poState.withEst;
+        if (w.length === 0) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak estymat do pokazania", cssW / 2, cssH / 2);
+          return;
+        }
+
+        const padL = 44,
+          padR = 16,
+          padT = 16,
+          padB = 28;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+        const maxVal = Math.max(
+          0.01,
+          ...w.map((r) => Math.max(r.est, r.real)),
+        );
+        const yMax = maxVal * 1.15;
+
+        ctx.strokeStyle = "#2a2e3c";
+        ctx.fillStyle = "#7b80a0";
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        for (let k = 0; k <= 4; k++) {
+          const v = (yMax / 4) * k;
+          const py = padT + plotH - (v / yMax) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padL, py);
+          ctx.lineTo(padL + plotW, py);
+          ctx.stroke();
+          ctx.fillText(`$${v.toFixed(2)}`, padL - 6, py);
+        }
+
+        const groupW = plotW / w.length;
+        const barW = Math.min(22, (groupW - 8) / 2);
+        const rects = [];
+        w.forEach((r, i) => {
+          const gx = padL + i * groupW + groupW / 2;
+          const estH = (r.est / yMax) * plotH;
+          const realH = (r.real / yMax) * plotH;
+          const estX = gx - barW - 1;
+          const realX = gx + 1;
+          const estY = padT + plotH - estH;
+          const realY = padT + plotH - realH;
+          ctx.fillStyle = "#60a5fa";
+          ctx.fillRect(estX, estY, barW, estH);
+          ctx.fillStyle = "#f59e0b";
+          ctx.fillRect(realX, realY, barW, realH);
+          rects.push({ x: estX, y: estY, w: barW, h: estH, row: r, kind: "est" });
+          rects.push({
+            x: realX,
+            y: realY,
+            w: barW,
+            h: realH,
+            row: r,
+            kind: "real",
+          });
+        });
+        poBarState = { rects };
+
+        canvas.onmousemove = (e) => {
+          if (!poBarState) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const hit = poBarState.rects.find(
+            (b) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h,
+          );
+          if (!hit) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          const r = hit.row;
+          const val = hit.kind === "est" ? r.est : r.real;
+          tooltip.textContent = `${r.name} — ${hit.kind === "est" ? "estymata" : "realne"}: $${val.toFixed(2)}`;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+          tooltip.classList.add("show");
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
+      }
+
+      function renderPOTable() {
+        const tbody = document.getElementById("po-accuracy-tbody");
+        tbody.replaceChildren();
+        let rows = poState.rows.slice();
+        if (poState.filterOnly)
+          rows = rows.filter((r) => r.errPct != null && r.errPct > 20);
+        rows.sort((a, b) => {
+          const av = a.errPct == null ? -1 : a.errPct;
+          const bv = b.errPct == null ? -1 : b.errPct;
+          return poState.sortAsc ? av - bv : bv - av;
+        });
+
+        if (rows.length === 0) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.textContent = "Brak danych";
+          td.style.textAlign = "center";
+          td.style.color = "#7b80a0";
+          tr.append(td);
+          tbody.append(tr);
+          return;
+        }
+
+        for (const r of rows) {
+          const tr = document.createElement("tr");
+          const style = poErrStyle(r.errPct);
+          if (r.hasEst) tr.style.borderLeft = `3px solid ${style.hex}`;
+
+          const name = document.createElement("td");
+          name.textContent = r.name;
+          const est = document.createElement("td");
+          est.className = "num-cell";
+          est.textContent = r.hasEst ? `$${r.est.toFixed(2)}` : "BRAK ESTYMY";
+          if (!r.hasEst) est.style.color = "#7b80a0";
+          const real = document.createElement("td");
+          real.className = "num-cell";
+          real.textContent = `$${r.real.toFixed(2)}`;
+          const err = document.createElement("td");
+          err.className = "num-cell";
+          err.textContent = r.errPct == null ? "—" : `${r.errPct.toFixed(0)}%`;
+          err.style.color = style.hex;
+          const cat = document.createElement("td");
+          cat.textContent = r.category || "—";
+          const date = document.createElement("td");
+          date.textContent = r.date || "—";
+
+          tr.append(name, est, real, err, cat, date);
+          tbody.append(tr);
+        }
+      }
+
+      let poPieState = null;
+      function renderPOPie() {
+        const canvas = document.getElementById("po-pie-chart");
+        const tooltip = document.getElementById("po-pie-tooltip");
+        const legend = document.getElementById("po-pie-legend");
+        legend.replaceChildren();
+
+        const CATS = [
+          { key: "Długa sesja", color: "#60a5fa" },
+          { key: "Nieznana technologia", color: "#a78bfa" },
+          { key: "Iteracje bugów", color: "#f87171" },
+          { key: "Złe wymagania", color: "#fbbf24" },
+          { key: "Inne", color: "#10b981" },
+        ];
+        const counts = {};
+        for (const r of poState.withEst)
+          counts[r.category] = (counts[r.category] || 0) + 1;
+        const slices = CATS.map((c) => ({
+          key: c.key,
+          label: c.key,
+          value: counts[c.key] || 0,
+          color: c.color,
+        }));
+        const total = slices.reduce((s, x) => s + x.value, 0);
+
+        // donut (count-based; nie reużywamy drawPie bo ma etykietę "zł" w środku)
+        const cssW = parseInt(canvas.dataset.w || "280", 10);
+        const cssH = parseInt(canvas.dataset.h || "280", 10);
+        const ctx = setupCanvas(canvas, cssW, cssH);
+        ctx.clearRect(0, 0, cssW, cssH);
+        const cx = cssW / 2,
+          cy = cssH / 2;
+        const radius = Math.min(cssW, cssH) / 2 - 10;
+        const inner = radius * 0.55;
+        poPieState = null;
+
+        if (total === 0) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak danych", cx, cy);
+        } else {
+          let start = -Math.PI / 2;
+          const computed = [];
+          for (const s of slices) {
+            if (s.value <= 0) {
+              computed.push({ ...s, startAngle: start, endAngle: start });
+              continue;
+            }
+            const end = start + (s.value / total) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, start, end);
+            ctx.arc(cx, cy, inner, end, start, true);
+            ctx.closePath();
+            ctx.fillStyle = s.color;
+            ctx.fill();
+            ctx.strokeStyle = "#1a1d27";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            computed.push({ ...s, startAngle: start, endAngle: end });
+            start = end;
+          }
+          ctx.fillStyle = "#e2e4f0";
+          ctx.font = 'bold 18px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`${total}`, cx, cy - 6);
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+          ctx.fillText("tasków", cx, cy + 12);
+          poPieState = { slices: computed, cx, cy, radius, inner, total };
+        }
+
+        for (const s of slices) {
+          const item = document.createElement("div");
+          item.className = "pie-legend-item";
+          const sw = document.createElement("span");
+          sw.className = "pie-legend-swatch";
+          sw.style.background = s.color;
+          const lbl = document.createElement("span");
+          lbl.textContent = s.label;
+          const val = document.createElement("span");
+          val.className = "pie-legend-value";
+          val.textContent = `${s.value}`;
+          const pct = document.createElement("span");
+          pct.className = "pie-legend-pct";
+          pct.textContent =
+            total > 0 ? `${((s.value / total) * 100).toFixed(0)}%` : "—";
+          item.append(sw, lbl, val, pct);
+          legend.append(item);
+        }
+
+        canvas.onmousemove = (e) => {
+          if (!poPieState) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const dx = x - poPieState.cx;
+          const dy = y - poPieState.cy;
+          const r = Math.sqrt(dx * dx + dy * dy);
+          if (r > poPieState.radius || r < poPieState.inner) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          let angle = Math.atan2(dy, dx);
+          if (angle < -Math.PI / 2) angle += Math.PI * 2;
+          const hit = poPieState.slices.find(
+            (s) => s.value > 0 && angle >= s.startAngle && angle < s.endAngle,
+          );
+          if (!hit) {
+            tooltip.classList.remove("show");
+            return;
+          }
+          tooltip.textContent = `${hit.label}: ${hit.value} (${((hit.value / poPieState.total) * 100).toFixed(0)}%)`;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+          tooltip.classList.add("show");
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
+      }
+
+      function renderPOHistory() {
+        const el = document.getElementById("po-history-timeline");
+        el.replaceChildren();
+        const dated = poState.withEst.filter((r) => r.date);
+        if (dated.length === 0) {
+          const p = document.createElement("div");
+          p.textContent =
+            "Brak dat w estymatach — timeline pojawi się gdy estymaty będą miały datę.";
+          el.append(p);
+          return;
+        }
+        const weeks = {};
+        for (const r of dated) {
+          const wk = poIsoWeek(r.date);
+          if (!wk) continue;
+          (weeks[wk] = weeks[wk] || []).push(r.errPct);
+        }
+        const keys = Object.keys(weeks).sort();
+        keys.forEach((wk, idx) => {
+          const errs = weeks[wk];
+          const avg = errs.reduce((s, e) => s + e, 0) / errs.length;
+          const style = poErrStyle(avg);
+          const bullets = Math.max(1, Math.min(8, Math.round(avg / 10)));
+          const line = document.createElement("div");
+          const label = document.createElement("span");
+          label.textContent = `Tydz. ${idx + 1} (${wk}) — ${errs.length} tasków — śr. błąd ${avg.toFixed(0)}%  `;
+          const dots = document.createElement("span");
+          dots.className = style.cls;
+          dots.textContent = "●".repeat(bullets);
+          line.append(label, dots);
+          el.append(line);
+        });
+      }
+
+      function renderPOAccuracy(items) {
+        poState.rows = buildPORows(items);
+        poState.withEst = poState.rows.filter(
+          (r) => r.hasEst && r.errPct != null,
+        );
+        renderPOSummary();
+        drawPOScatter();
+        drawPOBars();
+        renderPOTable();
+        renderPOPie();
+        renderPOHistory();
+
+        if (!poState.bound) {
+          document
+            .getElementById("po-filter-error")
+            .addEventListener("change", (e) => {
+              poState.filterOnly = e.target.checked;
+              renderPOTable();
+            });
+          const sortBtn = document.getElementById("po-sort-error");
+          sortBtn.addEventListener("click", () => {
+            poState.sortAsc = !poState.sortAsc;
+            sortBtn.textContent = `Sortuj po błędzie: ${poState.sortAsc ? "rosnąco" : "malejąco"}`;
+            renderPOTable();
+          });
+          window.addEventListener("resize", () => {
+            drawPOScatter();
+            drawPOBars();
+          });
+          poState.bound = true;
+        }
+      }
+
       // Show analytics content
       function render({ costItems: items, bugTasks }) {
         renderSummary(items);
@@ -2300,6 +3023,7 @@
         renderPieChart(items);
         renderTrendChart(items);
         renderRankings(items);
+        renderPOAccuracy(items);
         renderBugs(bugTasks);
         document.getElementById("loading").style.display = "none";
         document.getElementById("analytics-content").style.display = "block";
