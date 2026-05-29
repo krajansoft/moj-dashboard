@@ -719,6 +719,47 @@
         height: 240px;
         display: block;
       }
+
+      /* --- Velocity --- */
+      .vel-sub {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+      }
+      .vel-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+        gap: 0.75rem;
+      }
+      .vel-card {
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+      }
+      .vel-card-head {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.55rem;
+      }
+      .vel-card-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        padding: 0.12rem 0;
+      }
+      .vel-card-row span:last-child {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .vel-trend-up {
+        color: #f87171;
+      }
+      .vel-trend-down {
+        color: #10b981;
+      }
       .trend-legend {
         display: flex;
         flex-wrap: wrap;
@@ -1135,6 +1176,24 @@
         <div class="po-subtitle">Historia uczenia się (średni błąd per tydzień)</div>
         <div class="po-history" id="po-history-timeline"></div>
       </div>
+
+      <div class="section-block">
+        <div class="section-title"><span>📊</span> Velocity projektu</div>
+
+        <div class="summary-grid" id="velocity-forecast"></div>
+
+        <div class="po-subtitle">
+          Tempo (taski/tydzień) i koszt per task — trend malejący kosztu = dobrze
+        </div>
+        <div class="trend-wrap">
+          <canvas id="velocity-chart" data-h="240"></canvas>
+          <div class="canvas-tooltip" id="velocity-tooltip"></div>
+        </div>
+        <div class="trend-legend" id="velocity-legend"></div>
+
+        <div class="po-subtitle">Tygodnie</div>
+        <div class="vel-cards" id="velocity-cards"></div>
+      </div>
     </main>
 
     <footer id="footer" style="display: none">
@@ -1373,6 +1432,7 @@
       }
 
       const BUGS_SECTION_ID = "6gj92pQjFpC8gfrH";
+      const BACKLOG_SECTION_ID = "6gj92pW5rVJc9vcq";
 
       function parseBugSeverity(task) {
         if (task.priority === 4)
@@ -1569,7 +1629,11 @@
         );
 
         const bugTasks = tasks.filter((t) => t.section_id === BUGS_SECTION_ID);
-        return { costItems: enriched.filter(Boolean), bugTasks };
+        // P1+P2 w backlogu (priority API: 4=P1, 3=P2) — podstawa prognozy velocity
+        const backlogP1P2 = tasks.filter(
+          (t) => t.section_id === BACKLOG_SECTION_ID && t.priority >= 3,
+        ).length;
+        return { costItems: enriched.filter(Boolean), bugTasks, backlogP1P2 };
       }
 
       // Render summary
@@ -3155,7 +3219,419 @@
         });
       }
 
-      function render({ costItems: items, bugTasks }) {
+      // --- Velocity projektu ---
+      let velocityState = null;
+      let velocityBound = false;
+
+      // Agreguje dane per tydzień ISO.
+      // Taski liczone po lastActivity (tydzień ukończenia), koszt+sesje po postedAt sesji.
+      function buildVelocityWeeks(items) {
+        const map = new Map();
+        const ensure = (key, dateMs) => {
+          let w = map.get(key);
+          if (!w) {
+            w = {
+              key,
+              weekNum: parseInt(key.split("-W")[1], 10),
+              repDate: dateMs,
+              tasks: 0,
+              cost: 0,
+              sessions: 0,
+            };
+            map.set(key, w);
+          } else if (dateMs < w.repDate) {
+            w.repDate = dateMs;
+          }
+          return w;
+        };
+
+        for (const it of items) {
+          if (it.lastActivity) {
+            const ds = String(it.lastActivity).slice(0, 10);
+            const key = poIsoWeek(ds);
+            if (key) ensure(key, new Date(ds + "T00:00:00").getTime()).tasks += 1;
+          }
+          for (const s of it.sessions || []) {
+            if (!s.postedAt) continue;
+            const ds = String(s.postedAt).slice(0, 10);
+            const key = poIsoWeek(ds);
+            if (!key) continue;
+            const cost =
+              s.breakdown.inputPLN +
+              s.breakdown.outputPLN +
+              s.breakdown.cacheWritePLN +
+              s.breakdown.cacheReadPLN;
+            const w = ensure(key, new Date(ds + "T00:00:00").getTime());
+            w.cost += cost;
+            w.sessions += 1;
+          }
+        }
+
+        const weeks = [...map.values()].sort((a, b) => a.repDate - b.repDate);
+        for (const w of weeks) {
+          w.costPerTask = w.tasks > 0 ? w.cost / w.tasks : 0;
+          w.speed = w.sessions > 0 ? w.tasks / w.sessions : 0;
+        }
+        return weeks;
+      }
+
+      function velStatCard(label, value, valClass, sub) {
+        const card = document.createElement("div");
+        card.className = "stat-card";
+        const l = document.createElement("div");
+        l.className = "stat-label";
+        l.textContent = label;
+        const v = document.createElement("div");
+        v.className = "stat-value" + (valClass ? " " + valClass : "");
+        v.textContent = value;
+        card.append(l, v);
+        if (sub) {
+          const s = document.createElement("div");
+          s.className = "vel-sub";
+          s.textContent = sub;
+          card.append(s);
+        }
+        return card;
+      }
+
+      function renderVelocityForecast(weeks, backlogCount) {
+        const grid = document.getElementById("velocity-forecast");
+        grid.replaceChildren();
+
+        const weeksWithTasks = weeks.filter((w) => w.tasks > 0);
+        const totalTasks = weeks.reduce((s, w) => s + w.tasks, 0);
+        const totalCost = weeks.reduce((s, w) => s + w.cost, 0);
+        const avgPerWeek = weeksWithTasks.length
+          ? totalTasks / weeksWithTasks.length
+          : 0;
+        const avgCostPerTask = totalTasks > 0 ? totalCost / totalTasks : 0;
+
+        // Velocity
+        grid.append(
+          velStatCard(
+            "Velocity",
+            avgPerWeek > 0 ? `${avgPerWeek.toFixed(1)}` : "—",
+            "accent",
+            "tasków / tydzień (śr.)",
+          ),
+        );
+
+        // Prognoza ukończenia
+        let finishValue = "—";
+        let finishSub = `${backlogCount} tasków P1+P2 w backlogu`;
+        if (avgPerWeek > 0 && backlogCount > 0) {
+          const weeksToFinish = Math.ceil(backlogCount / avgPerWeek);
+          const finishDate = new Date(
+            Date.now() + weeksToFinish * 7 * 86400000,
+          );
+          finishValue = `~${weeksToFinish} tyg.`;
+          finishSub = `${backlogCount} tasków · ok. ${finishDate.toLocaleDateString(
+            "pl-PL",
+            { day: "numeric", month: "short", year: "numeric" },
+          )}`;
+        } else if (backlogCount === 0) {
+          finishValue = "✓";
+          finishSub = "backlog P1+P2 pusty";
+        }
+        grid.append(
+          velStatCard("Prognoza ukończenia", finishValue, "", finishSub),
+        );
+
+        // Koszt do końca
+        const costToEnd = backlogCount * avgCostPerTask;
+        grid.append(
+          velStatCard(
+            "Koszt do końca",
+            avgCostPerTask > 0 ? fmtPLN(costToEnd) : "—",
+            "",
+            avgCostPerTask > 0
+              ? `${fmtPLN(avgCostPerTask)} / task (śr.)`
+              : "brak danych",
+          ),
+        );
+
+        // Trend kosztu per task (ostatnie 2 tygodnie z taskami)
+        const wt = weeksWithTasks;
+        let trendValue = "—";
+        let trendClass = "";
+        let trendSub = "potrzeba ≥2 tygodni z taskami";
+        if (wt.length >= 2) {
+          const prev = wt[wt.length - 2].costPerTask;
+          const last = wt[wt.length - 1].costPerTask;
+          if (prev > 0) {
+            const deltaPct = ((last - prev) / prev) * 100;
+            const arrow = deltaPct <= 0 ? "↓" : "↑";
+            trendClass = deltaPct <= 0 ? "green" : "";
+            trendValue = `${arrow} ${Math.abs(deltaPct).toFixed(0)}%`;
+            trendSub =
+              deltaPct <= 0
+                ? "koszt/task spada — framework działa"
+                : "koszt/task rośnie — coś spowalnia";
+          }
+        }
+        grid.append(
+          velStatCard("Trend kosztu/task", trendValue, trendClass, trendSub),
+        );
+      }
+
+      function renderVelocityCards(weeks) {
+        const wrap = document.getElementById("velocity-cards");
+        wrap.replaceChildren();
+        if (!weeks.length) {
+          const empty = document.createElement("div");
+          empty.className = "vel-sub";
+          empty.textContent = "Brak danych tygodniowych.";
+          wrap.append(empty);
+          return;
+        }
+        const fmtShort = (ms) =>
+          new Date(ms).toLocaleDateString("pl-PL", {
+            day: "numeric",
+            month: "short",
+          });
+        for (const w of [...weeks].reverse()) {
+          const card = document.createElement("div");
+          card.className = "vel-card";
+          const head = document.createElement("div");
+          head.className = "vel-card-head";
+          head.textContent = `Tydzień ${w.weekNum} (${fmtShort(w.repDate)})`;
+          card.append(head);
+          const rows = [
+            ["Taski", String(w.tasks)],
+            ["Koszt", fmtPLN(w.cost)],
+            ["Sesje", String(w.sessions)],
+            [
+              "Szybkość",
+              w.sessions > 0 ? `${w.speed.toFixed(1)} task/sesję` : "—",
+            ],
+          ];
+          for (const [k, v] of rows) {
+            const row = document.createElement("div");
+            row.className = "vel-card-row";
+            const ks = document.createElement("span");
+            ks.textContent = k;
+            const vs = document.createElement("span");
+            vs.textContent = v;
+            row.append(ks, vs);
+            card.append(row);
+          }
+          wrap.append(card);
+        }
+      }
+
+      // Wykres liniowy dual-axis: taski/tydzień (lewa oś) + koszt/task (prawa oś)
+      function drawVelocityChart(weeks) {
+        const canvas = document.getElementById("velocity-chart");
+        const tooltip = document.getElementById("velocity-tooltip");
+        const cssH = parseInt(canvas.dataset.h || "240", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        velocityState = null;
+        if (!weeks.length) {
+          ctx.fillStyle = "#7b80a0";
+          ctx.font = '14px "Segoe UI", system-ui, sans-serif';
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("Brak danych do wykresu velocity", cssW / 2, cssH / 2);
+          return;
+        }
+
+        const padL = 38;
+        const padR = 44;
+        const padT = 20;
+        const padB = 30;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+        const n = weeks.length;
+
+        const leftMax = Math.max(...weeks.map((w) => w.tasks), 1);
+        const rightMax = Math.max(...weeks.map((w) => w.costPerTask), 0.01);
+
+        const xOf = (i) =>
+          n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+        const yL = (v) => padT + plotH - (v / leftMax) * plotH;
+        const yR = (v) => padT + plotH - (v / rightMax) * plotH;
+
+        // Grid + osie
+        ctx.strokeStyle = "#2e3249";
+        ctx.lineWidth = 1;
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = "middle";
+        const steps = 4;
+        for (let i = 0; i <= steps; i++) {
+          const y = padT + (i / steps) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(cssW - padR, y);
+          ctx.stroke();
+          // lewa oś: taski
+          ctx.fillStyle = "#60a5fa";
+          ctx.textAlign = "right";
+          ctx.fillText(
+            `${(leftMax * (1 - i / steps)).toFixed(0)}`,
+            padL - 6,
+            y,
+          );
+          // prawa oś: koszt/task
+          ctx.fillStyle = "#fbbf24";
+          ctx.textAlign = "left";
+          ctx.fillText(
+            `${(rightMax * (1 - i / steps)).toFixed(2)}`,
+            cssW - padR + 6,
+            y,
+          );
+        }
+
+        // X labels (numery tygodni)
+        ctx.fillStyle = "#7b80a0";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        const labelStep = Math.ceil(n / 8);
+        weeks.forEach((w, i) => {
+          if (i % labelStep === 0 || i === n - 1) {
+            ctx.fillText(`W${w.weekNum}`, xOf(i), cssH - padB + 6);
+          }
+        });
+
+        // Linia trendu (least squares po indeksie) dla obu serii
+        const drawTrend = (vals, yFn, color) => {
+          if (n < 2) return;
+          const xs = vals.map((_, i) => i);
+          const xMean = xs.reduce((s, v) => s + v, 0) / n;
+          const yMean = vals.reduce((s, v) => s + v, 0) / n;
+          let num = 0,
+            den = 0;
+          for (let i = 0; i < n; i++) {
+            num += (xs[i] - xMean) * (vals[i] - yMean);
+            den += (xs[i] - xMean) ** 2;
+          }
+          if (den <= 0) return;
+          const slope = num / den;
+          const intercept = yMean - slope * xMean;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.globalAlpha = 0.45;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(xOf(0), yFn(Math.max(0, intercept)));
+          ctx.lineTo(xOf(n - 1), yFn(Math.max(0, slope * (n - 1) + intercept)));
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        };
+        drawTrend(
+          weeks.map((w) => w.tasks),
+          yL,
+          "#60a5fa",
+        );
+        drawTrend(
+          weeks.map((w) => w.costPerTask),
+          yR,
+          "#fbbf24",
+        );
+
+        // Serie + punkty
+        const drawSeries = (yFn, valFn, color) => {
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          weeks.forEach((w, i) => {
+            const x = xOf(i);
+            const y = yFn(valFn(w));
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          ctx.stroke();
+          weeks.forEach((w, i) => {
+            const x = xOf(i);
+            const y = yFn(valFn(w));
+            ctx.beginPath();
+            ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = "#0f1117";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+        };
+        drawSeries(yL, (w) => w.tasks, "#60a5fa");
+        drawSeries(yR, (w) => w.costPerTask, "#fbbf24");
+
+        velocityState = {
+          weeks,
+          geom: weeks.map((w, i) => ({ w, x: xOf(i) })),
+        };
+
+        canvas.onmousemove = (e) => {
+          if (!velocityState) return;
+          const rect = canvas.getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          let best = null;
+          let bestDist = Infinity;
+          for (const g of velocityState.geom) {
+            const d = Math.abs(g.x - mx);
+            if (d < bestDist) {
+              bestDist = d;
+              best = g;
+            }
+          }
+          if (best && bestDist < 28) {
+            const w = best.w;
+            tooltip.replaceChildren();
+            const head = document.createElement("div");
+            head.textContent = `Tydzień ${w.weekNum}`;
+            const l1 = document.createElement("div");
+            l1.textContent = `${w.tasks} tasków · ${w.sessions} sesji`;
+            const l2 = document.createElement("div");
+            l2.textContent = `${fmtPLN(w.cost)} · ${fmtPLN(w.costPerTask)}/task`;
+            tooltip.append(head, l1, l2);
+            tooltip.style.left = `${best.x}px`;
+            tooltip.style.top = `${padT}px`;
+            tooltip.classList.add("show");
+          } else {
+            tooltip.classList.remove("show");
+          }
+        };
+        canvas.onmouseleave = () => tooltip.classList.remove("show");
+      }
+
+      function renderVelocityLegend() {
+        const legend = document.getElementById("velocity-legend");
+        legend.replaceChildren();
+        const items = [
+          { color: "#60a5fa", label: "Taski / tydzień (lewa oś)" },
+          { color: "#fbbf24", label: "Koszt / task w zł (prawa oś)" },
+        ];
+        for (const it of items) {
+          const el = document.createElement("span");
+          el.className = "trend-legend-item";
+          const sw = document.createElement("span");
+          sw.className = "pie-legend-swatch";
+          sw.style.background = it.color;
+          const lbl = document.createElement("span");
+          lbl.textContent = it.label;
+          el.append(sw, lbl);
+          legend.append(el);
+        }
+      }
+
+      function renderVelocity(items, backlogCount) {
+        const weeks = buildVelocityWeeks(items);
+        renderVelocityForecast(weeks, backlogCount || 0);
+        renderVelocityLegend();
+        drawVelocityChart(weeks);
+        renderVelocityCards(weeks);
+        if (!velocityBound) {
+          window.addEventListener("resize", () =>
+            drawVelocityChart(buildVelocityWeeks(lastCostItems)),
+          );
+          velocityBound = true;
+        }
+      }
+
+      function render({ costItems: items, bugTasks, backlogP1P2 }) {
         lastCostItems = items;
         renderSummary(items);
         renderBreakdown(items);
@@ -3166,6 +3642,7 @@
         renderTrendChart(items);
         renderRankings(items);
         renderPOAccuracy(items);
+        renderVelocity(items, backlogP1P2);
         renderBugs(bugTasks);
         document.getElementById("loading").style.display = "none";
         document.getElementById("analytics-content").style.display = "block";
