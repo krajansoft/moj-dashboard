@@ -720,6 +720,185 @@
         display: block;
       }
 
+      /* --- Analityka danych --- */
+      .analytics-sub {
+        font-weight: 600;
+        color: var(--text);
+        margin: 1.4rem 0 0.6rem;
+        font-size: 0.95rem;
+      }
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+      }
+      .analytics-side {
+        min-width: 0;
+      }
+      .analytics-insight {
+        background: var(--surface-hover);
+        border-left: 3px solid var(--accent);
+        border-radius: 6px;
+        padding: 0.6rem 0.75rem;
+        margin-top: 0.6rem;
+        font-size: 0.82rem;
+        color: var(--text);
+        line-height: 1.4;
+      }
+      .hist-stat-row {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        padding: 0.25rem 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.82rem;
+      }
+      .hist-stat-k {
+        color: var(--text-muted);
+        min-width: 110px;
+      }
+      .hist-stat-v {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .hist-stat-hint {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+      }
+      .hist-outliers {
+        margin-top: 0.5rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+      .hist-tasklist {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .hist-task-link {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.35rem 0.5rem;
+        background: var(--surface-hover);
+        border-radius: 6px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 0.8rem;
+      }
+      .hist-task-link:hover {
+        color: var(--accent);
+      }
+      .hist-task-link.inline {
+        display: inline;
+        background: none;
+        padding: 0;
+        color: var(--accent);
+      }
+      .hist-task-cost {
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+      /* Heatmapa */
+      .heat-wrap {
+        overflow-x: auto;
+      }
+      .heat-grid {
+        display: grid;
+        grid-template-columns: 38px repeat(7, minmax(28px, 1fr));
+        gap: 3px;
+        min-width: 320px;
+      }
+      .heat-colhead,
+      .heat-rowhead {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .heat-rowhead {
+        justify-content: flex-end;
+        padding-right: 4px;
+      }
+      .heat-cell {
+        height: 22px;
+        border-radius: 4px;
+        background: var(--surface-hover);
+      }
+      .heat-cell.heat-empty {
+        background: var(--surface);
+        border: 1px solid var(--border);
+      }
+      .heat-legend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.6rem;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+      }
+      .heat-gradient {
+        width: 120px;
+        height: 10px;
+        border-radius: 5px;
+        background: linear-gradient(
+          90deg,
+          #10b981,
+          #fbbf24,
+          #f87171
+        );
+      }
+      .pareto-line {
+        font-size: 0.82rem;
+        color: var(--text);
+        margin-top: 0.5rem;
+      }
+      /* Stacked bary kosztów błędów */
+      .bugcost-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .bugcost-barrow {
+        display: grid;
+        grid-template-columns: minmax(90px, 1.2fr) minmax(0, 3fr) auto;
+        gap: 0.6rem;
+        align-items: center;
+        font-size: 0.78rem;
+      }
+      .bugcost-barname {
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .bugcost-bartrack {
+        display: flex;
+        height: 16px;
+        background: var(--surface-hover);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .bugcost-seg.find {
+        background: #60a5fa;
+      }
+      .bugcost-seg.fix {
+        background: #fb923c;
+      }
+      .bugcost-barval {
+        color: var(--text);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      @media (max-width: 640px) {
+        .analytics-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
       /* --- Velocity --- */
       .vel-sub {
         font-size: 0.72rem;
@@ -1266,6 +1445,62 @@
 
         <div class="po-subtitle">Tygodnie</div>
         <div class="vel-cards" id="velocity-cards"></div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title"><span>📊</span> Analityka danych</div>
+        <div class="po-subtitle">
+          Od „co się dzieje” do „dlaczego” i „co zmienić” — rozkład kosztów,
+          rytm pracy, źródła bugów i pełne koszty błędów.
+        </div>
+
+        <div class="analytics-sub">📦 Rozkład kosztów (histogram)</div>
+        <div class="analytics-grid" id="hist-section">
+          <div class="trend-wrap">
+            <canvas id="hist-chart" data-h="240"></canvas>
+          </div>
+          <div class="analytics-side">
+            <div id="hist-stats"></div>
+            <div id="hist-tasklist" class="hist-tasklist"></div>
+          </div>
+        </div>
+
+        <div class="analytics-sub">🔥 Heatmapa produktywności (dzień × godzina)</div>
+        <div class="heat-wrap">
+          <div class="heat-grid" id="heat-grid"></div>
+          <div class="heat-legend">
+            <span>taniej</span>
+            <span class="heat-gradient"></span>
+            <span>drożej</span>
+          </div>
+          <div id="heat-stats"></div>
+        </div>
+
+        <div class="analytics-sub">🎯 Pareto bugów (źródła kosztów)</div>
+        <div class="trend-wrap">
+          <canvas id="pareto-chart" data-h="260"></canvas>
+        </div>
+        <div id="pareto-stats"></div>
+
+        <div class="analytics-sub">🐛 Realne koszty błędów</div>
+        <div class="bugs-summary" id="bugcost-summary"></div>
+        <div class="table-wrap">
+          <table class="data-table bugcost-table">
+            <thead>
+              <tr>
+                <th>Błąd</th>
+                <th>Źródło</th>
+                <th class="num-cell">Znalezienie</th>
+                <th class="num-cell">Naprawa</th>
+                <th class="num-cell">Łącznie</th>
+                <th class="num-cell">Błąd estymy</th>
+              </tr>
+            </thead>
+            <tbody id="bugcost-tbody"></tbody>
+          </table>
+        </div>
+        <div class="po-subtitle">Proporcja kosztu: znalezienie vs naprawa</div>
+        <div id="bugcost-bars" class="bugcost-bars"></div>
       </div>
     </main>
 
@@ -3386,6 +3621,7 @@
       // Show analytics content
       let sortListenersInitialized = false;
       let lastCostItems = [];
+      let lastClosedBugs = [];
 
       function initSortListeners() {
         if (sortListenersInitialized) return;
@@ -3816,6 +4052,767 @@
         }
       }
 
+      // ===== Sekcja: Analityka danych (histogram / heatmapa / Pareto / koszty błędów) =====
+
+      const ANALYTICS_MIN = { hist: 5, heat: 10, pareto: 3, bugCost: 1 };
+
+      // --- SEKCJA 1: Histogram rozkładu kosztów ---
+      const HIST_BUCKETS = [
+        { label: "$0–0.25", min: 0, max: 0.25, color: "#10b981" },
+        { label: "$0.25–0.50", min: 0.25, max: 0.5, color: "#84cc16" },
+        { label: "$0.50–1.00", min: 0.5, max: 1.0, color: "#fbbf24" },
+        { label: "$1.00–2.00", min: 1.0, max: 2.0, color: "#fb923c" },
+        { label: "$2.00+", min: 2.0, max: Infinity, color: "#f87171" },
+      ];
+
+      // items: [{id, name, costUSD}] → kubełki z listą tasków (do kliknięcia)
+      function costHistogram(items) {
+        const buckets = HIST_BUCKETS.map((b) => ({ ...b, items: [] }));
+        for (const it of items || []) {
+          const v = it.costUSD || 0;
+          const bi = buckets.findIndex((b) => v >= b.min && v < b.max);
+          (buckets[bi === -1 ? buckets.length - 1 : bi].items).push(it);
+        }
+        return buckets.map((b) => ({ ...b, count: b.items.length }));
+      }
+
+      // Statystyki rozkładu: mediana, odch. std, outliery (|v-mean| > 2σ)
+      function costStats(values) {
+        const xs = (values || []).filter((v) => isFinite(v)).slice().sort((a, b) => a - b);
+        const n = xs.length;
+        if (n === 0)
+          return { n: 0, mean: 0, median: 0, std: 0, max: 0, maxIdx: -1, outliers: [] };
+        const mean = xs.reduce((s, v) => s + v, 0) / n;
+        const median =
+          n % 2 ? xs[(n - 1) / 2] : (xs[n / 2 - 1] + xs[n / 2]) / 2;
+        const variance = xs.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+        const std = Math.sqrt(variance);
+        const max = xs[n - 1];
+        const outliers = [];
+        (values || []).forEach((v, i) => {
+          if (std > 0 && Math.abs(v - mean) > 2 * std)
+            outliers.push({ value: v, index: i });
+        });
+        return { n, mean, median, std, max, maxIdx: -1, outliers };
+      }
+
+      // Automatyczny wniosek dla histogramu
+      function histogramInsight(stats) {
+        const out = [];
+        if (stats.n === 0) return out;
+        if (stats.median > 0 && stats.std > 0.5 * stats.median)
+          out.push(
+            "⚠️ Koszty są nieprzewidywalne — duży rozrzut (odch. std > 50% mediany). Sprawdź outliery.",
+          );
+        if (stats.n > 0 && stats.outliers.length > 0.1 * stats.n)
+          out.push(
+            "⚠️ Za dużo sesji wymknęło się spod kontroli (>10% to outliery). Rozważ twardszy limit budżetu per sesję.",
+          );
+        if (out.length === 0)
+          out.push("✅ Koszty są przewidywalne — rozrzut w normie.");
+        return out;
+      }
+
+      // --- SEKCJA 2: Heatmapa produktywności (dzień × blok 2h) ---
+      const HEAT_DAYS = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Ndz"];
+
+      function dayBlockOf(iso) {
+        const d = new Date(iso);
+        if (isNaN(d)) return null;
+        const day = (d.getDay() + 6) % 7; // poniedziałek = 0
+        const block = Math.floor(d.getHours() / 2); // 0..11
+        return { day, block };
+      }
+
+      // sessions: [{postedAt, costUSD}] → grid[block][day] = {sum, count}
+      function buildHeatmap(sessions) {
+        const grid = Array.from({ length: 12 }, () =>
+          Array.from({ length: 7 }, () => ({ sum: 0, count: 0 })),
+        );
+        let total = 0;
+        for (const s of sessions || []) {
+          if (!s.postedAt) continue;
+          const db = dayBlockOf(s.postedAt);
+          if (!db) continue;
+          const cell = grid[db.block][db.day];
+          cell.sum += s.costUSD || 0;
+          cell.count += 1;
+          total += 1;
+        }
+        return { grid, totalSessions: total };
+      }
+
+      // Najtańszy blok + oszczędność względem średniej globalnej
+      function heatmapInsight(hm) {
+        let gSum = 0,
+          gCount = 0,
+          best = null;
+        for (let b = 0; b < 12; b++) {
+          for (let d = 0; d < 7; d++) {
+            const c = hm.grid[b][d];
+            if (c.count === 0) continue;
+            gSum += c.sum;
+            gCount += c.count;
+            const avg = c.sum / c.count;
+            if (!best || avg < best.avg) best = { day: d, block: b, avg };
+          }
+        }
+        if (!best || gCount === 0) return null;
+        const globalAvg = gSum / gCount;
+        const savingsPct =
+          globalAvg > 0 ? ((globalAvg - best.avg) / globalAvg) * 100 : 0;
+        return { best, globalAvg, savingsPct };
+      }
+
+      // --- SEKCJA 3: Pareto bugów per źródło ---
+      // entries: [{source, cost}] → posortowane malejąco z kumulatywnym % i flagą vital
+      function buildPareto(entries) {
+        const bySrc = {};
+        for (const e of entries || []) {
+          const src = e.source || "—";
+          bySrc[src] = (bySrc[src] || 0) + (e.cost || 0);
+        }
+        const rows = Object.entries(bySrc)
+          .map(([source, cost]) => ({ source, cost }))
+          .sort((a, b) => b.cost - a.cost);
+        const total = rows.reduce((s, r) => s + r.cost, 0);
+        let cum = 0;
+        let vitalDone = false;
+        for (const r of rows) {
+          cum += r.cost;
+          r.cumPct = total > 0 ? (cum / total) * 100 : 0;
+          // "vital few" = źródła do progu 80% (włącznie z tym, które go przekracza)
+          r.vital = !vitalDone;
+          if (r.cumPct >= 80) vitalDone = true;
+        }
+        return { rows, total };
+      }
+
+      const PARETO_RECO = {
+        SKILL: "Przejrzyj wszystkie skille pod kątem niejasności instrukcji.",
+        HUMAN: "Ulepsz szablon opisu taska — brakuje wymagań (DoR).",
+        CONFIG: "Audyt pliku settings.json i hooków.",
+        HOOK: "Przegląd hooków — prawdopodobnie za dużo automatyzacji.",
+        AGENT: "Zawęź odpowiedzialności agentów.",
+        "—": "Uzupełnij pole „Źródło:” w opisach bugów.",
+      };
+
+      // --- SEKCJA 4: Realne koszty błędów ---
+      // bugs: [task], costUSDById/findUSDById/estMidById: Map(id→USD)
+      function buildBugCostRows(bugs, costUSDById, findUSDById, estMidById) {
+        return (bugs || []).map((t) => {
+          const findUSD = findUSDById && findUSDById.has(t.id)
+            ? findUSDById.get(t.id)
+            : null;
+          const fixUSD = (costUSDById && costUSDById.get(t.id)) || 0;
+          const totalUSD = (findUSD || 0) + fixUSD;
+          const estMid =
+            estMidById && estMidById.has(t.id) ? estMidById.get(t.id) : null;
+          const estErrPct =
+            estMid && estMid > 0 ? ((fixUSD - estMid) / estMid) * 100 : null;
+          return {
+            id: t.id,
+            task: t,
+            source: parseBugSource(t),
+            findUSD,
+            fixUSD,
+            totalUSD,
+            estMid,
+            estErrPct,
+          };
+        });
+      }
+
+      function bugCostStats(rows, projectTotalUSD) {
+        const n = (rows || []).length;
+        if (n === 0)
+          return {
+            n: 0,
+            totalUSD: 0,
+            avgUSD: 0,
+            max: null,
+            findTotal: 0,
+            fixTotal: 0,
+            findPct: 0,
+            fixPct: 0,
+            avgEstErr: null,
+            pctOfBudget: 0,
+          };
+        const findTotal = rows.reduce((s, r) => s + (r.findUSD || 0), 0);
+        const fixTotal = rows.reduce((s, r) => s + (r.fixUSD || 0), 0);
+        const totalUSD = findTotal + fixTotal;
+        let max = null;
+        for (const r of rows) if (!max || r.totalUSD > max.totalUSD) max = r;
+        const errs = rows.map((r) => r.estErrPct).filter((e) => e != null);
+        const avgEstErr = errs.length
+          ? errs.reduce((s, e) => s + Math.abs(e), 0) / errs.length
+          : null;
+        return {
+          n,
+          totalUSD,
+          avgUSD: totalUSD / n,
+          max,
+          findTotal,
+          fixTotal,
+          findPct: totalUSD > 0 ? (findTotal / totalUSD) * 100 : 0,
+          fixPct: totalUSD > 0 ? (fixTotal / totalUSD) * 100 : 0,
+          avgEstErr,
+          pctOfBudget:
+            projectTotalUSD > 0 ? (totalUSD / projectTotalUSD) * 100 : 0,
+        };
+      }
+
+      // ---------- Renderery ----------
+      let analyticsBound = false;
+      let histState = null;
+
+      function emptyState(el, msg) {
+        el.replaceChildren();
+        const d = document.createElement("div");
+        d.className = "empty-state";
+        d.textContent = msg;
+        el.append(d);
+      }
+
+      function drawHistogram(buckets) {
+        const canvas = document.getElementById("hist-chart");
+        const cssH = parseInt(canvas.dataset.h || "240", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+        const padL = 30,
+          padR = 14,
+          padT = 16,
+          padB = 42;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+        const maxC = Math.max(...buckets.map((b) => b.count), 1);
+        const n = buckets.length;
+        const gap = 14;
+        const bw = (plotW - gap * (n - 1)) / n;
+        const bars = [];
+        // oś Y
+        ctx.strokeStyle = "#2e3249";
+        ctx.fillStyle = "#7b80a0";
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "right";
+        const steps = Math.min(maxC, 4) || 1;
+        for (let i = 0; i <= steps; i++) {
+          const y = padT + (i / steps) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(cssW - padR, y);
+          ctx.stroke();
+          ctx.fillText(`${Math.round(maxC * (1 - i / steps))}`, padL - 5, y);
+        }
+        buckets.forEach((b, i) => {
+          const x = padL + i * (bw + gap);
+          const h = (b.count / maxC) * plotH;
+          const y = padT + plotH - h;
+          ctx.fillStyle = b.color;
+          ctx.fillRect(x, y, bw, h);
+          bars.push({ x, y, w: bw, h, bucket: b });
+          // liczba nad słupkiem
+          if (b.count > 0) {
+            ctx.fillStyle = "#e6e8f0";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            ctx.fillText(String(b.count), x + bw / 2, y - 3);
+          }
+          // etykieta X
+          ctx.fillStyle = "#7b80a0";
+          ctx.textBaseline = "top";
+          ctx.save();
+          ctx.translate(x + bw / 2, cssH - padB + 6);
+          ctx.rotate(-Math.PI / 9);
+          ctx.fillText(b.label, 0, 0);
+          ctx.restore();
+        });
+        histState = { bars };
+      }
+
+      function renderHistogramTaskList(bucket) {
+        const list = document.getElementById("hist-tasklist");
+        list.replaceChildren();
+        const title = document.createElement("div");
+        title.className = "po-subtitle";
+        title.textContent = `Taski w przedziale ${bucket.label} (${bucket.count}):`;
+        list.append(title);
+        if (bucket.items.length === 0) {
+          emptyState(list, "Brak tasków w tym przedziale.");
+          return;
+        }
+        const sorted = [...bucket.items].sort((a, b) => b.costUSD - a.costUSD);
+        for (const it of sorted) {
+          const a = document.createElement("a");
+          a.className = "hist-task-link";
+          a.href = todoistTaskUrl(it.id);
+          a.target = "_blank";
+          a.rel = "noopener";
+          const name = document.createElement("span");
+          name.textContent = it.name;
+          const cost = document.createElement("span");
+          cost.className = "hist-task-cost";
+          cost.textContent = `$${(it.costUSD || 0).toFixed(2)}`;
+          a.append(name, cost);
+          list.append(a);
+        }
+      }
+
+      function renderHistogram(items) {
+        const data = items.map((i) => ({
+          id: i.task.id,
+          name: i.task.content,
+          costUSD: i.totalCostUSD,
+        }));
+        if (data.length < ANALYTICS_MIN.hist) {
+          emptyState(
+            document.getElementById("hist-stats"),
+            `Za mało danych — potrzeba min. ${ANALYTICS_MIN.hist} tasków (jest ${data.length}).`,
+          );
+          document.getElementById("hist-tasklist").replaceChildren();
+          const canvas = document.getElementById("hist-chart");
+          const ctx = setupCanvas(
+            canvas,
+            canvas.parentElement.clientWidth || 600,
+            parseInt(canvas.dataset.h || "240", 10),
+            { skipStyle: true },
+          );
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          return;
+        }
+        const buckets = costHistogram(data);
+        drawHistogram(buckets);
+        // statystyki + outliery + wniosek
+        const stats = costStats(data.map((d) => d.costUSD));
+        const statsEl = document.getElementById("hist-stats");
+        statsEl.replaceChildren();
+        const rows = [
+          ["Mediana", `$${stats.median.toFixed(2)}`, "bardziej miarodajna niż średnia"],
+          ["Średnia", `$${stats.mean.toFixed(2)}`, ""],
+          ["Odch. std", `$${stats.std.toFixed(2)}`, "jak bardzo koszty są rozrzucone"],
+          ["Outliery (>2σ)", `${stats.outliers.length}`, ""],
+          [
+            "Najdroższy",
+            `$${stats.max.toFixed(2)}`,
+            "",
+          ],
+        ];
+        for (const [k, v, hint] of rows) {
+          const r = document.createElement("div");
+          r.className = "hist-stat-row";
+          const kEl = document.createElement("span");
+          kEl.className = "hist-stat-k";
+          kEl.textContent = k;
+          const vEl = document.createElement("span");
+          vEl.className = "hist-stat-v";
+          vEl.textContent = v;
+          r.append(kEl, vEl);
+          if (hint) {
+            const h = document.createElement("span");
+            h.className = "hist-stat-hint";
+            h.textContent = hint;
+            r.append(h);
+          }
+          statsEl.append(r);
+        }
+        // outlier links
+        if (stats.outliers.length) {
+          const ol = document.createElement("div");
+          ol.className = "hist-outliers";
+          ol.append(document.createTextNode("Outliery: "));
+          stats.outliers.forEach((o, idx) => {
+            const it = data[o.index];
+            const a = document.createElement("a");
+            a.className = "hist-task-link inline";
+            a.href = todoistTaskUrl(it.id);
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.textContent = `${it.name} ($${o.value.toFixed(2)})`;
+            ol.append(a);
+            if (idx < stats.outliers.length - 1)
+              ol.append(document.createTextNode(", "));
+          });
+          statsEl.append(ol);
+        }
+        for (const msg of histogramInsight(stats)) {
+          const w = document.createElement("div");
+          w.className = "analytics-insight";
+          w.textContent = msg;
+          statsEl.append(w);
+        }
+        // domyślnie pokaż listę najdroższego niepustego kubełka
+        const firstNonEmpty = [...buckets].reverse().find((b) => b.count > 0);
+        if (firstNonEmpty) renderHistogramTaskList(firstNonEmpty);
+      }
+
+      function bindHistogramClick() {
+        const canvas = document.getElementById("hist-chart");
+        canvas.style.cursor = "pointer";
+        canvas.addEventListener("click", (e) => {
+          if (!histState) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const hit = histState.bars.find(
+            (b) => x >= b.x && x <= b.x + b.w && y >= 0 && y <= rect.height,
+          );
+          if (hit) renderHistogramTaskList(hit.bucket);
+        });
+      }
+
+      // gradient zielony→żółty→czerwony dla t∈[0,1]
+      function heatColor(t) {
+        t = Math.max(0, Math.min(1, t));
+        const lerp = (a, b, k) => Math.round(a + (b - a) * k);
+        let r, g, b;
+        if (t < 0.5) {
+          const k = t / 0.5; // zielony → żółty
+          r = lerp(16, 251, k);
+          g = lerp(185, 191, k);
+          b = lerp(129, 36, k);
+        } else {
+          const k = (t - 0.5) / 0.5; // żółty → czerwony
+          r = lerp(251, 248, k);
+          g = lerp(191, 113, k);
+          b = lerp(36, 113, k);
+        }
+        return `rgb(${r}, ${g}, ${b})`;
+      }
+
+      function renderHeatmap(items) {
+        const gridEl = document.getElementById("heat-grid");
+        const statsEl = document.getElementById("heat-stats");
+        const sessions = [];
+        for (const i of items)
+          for (const s of i.sessions)
+            sessions.push({ postedAt: s.postedAt, costUSD: s.costUSD });
+        const valid = sessions.filter((s) => s.postedAt);
+        if (valid.length < ANALYTICS_MIN.heat) {
+          gridEl.replaceChildren();
+          emptyState(
+            statsEl,
+            `Za mało danych — potrzeba min. ${ANALYTICS_MIN.heat} sesji z godziną (jest ${valid.length}).`,
+          );
+          return;
+        }
+        const hm = buildHeatmap(valid);
+        // zakres do gradientu
+        let lo = Infinity,
+          hi = -Infinity;
+        for (let b = 0; b < 12; b++)
+          for (let d = 0; d < 7; d++) {
+            const c = hm.grid[b][d];
+            if (c.count === 0) continue;
+            const avg = c.sum / c.count;
+            if (avg < lo) lo = avg;
+            if (avg > hi) hi = avg;
+          }
+        gridEl.replaceChildren();
+        // nagłówek dni
+        gridEl.append(document.createElement("div")); // róg
+        for (const d of HEAT_DAYS) {
+          const h = document.createElement("div");
+          h.className = "heat-colhead";
+          h.textContent = d;
+          gridEl.append(h);
+        }
+        for (let b = 0; b < 12; b++) {
+          const rh = document.createElement("div");
+          rh.className = "heat-rowhead";
+          rh.textContent = `${String(b * 2).padStart(2, "0")}h`;
+          gridEl.append(rh);
+          for (let d = 0; d < 7; d++) {
+            const c = hm.grid[b][d];
+            const cell = document.createElement("div");
+            cell.className = "heat-cell";
+            if (c.count === 0) {
+              cell.classList.add("heat-empty");
+              cell.title = `${HEAT_DAYS[d]} ${String(b * 2).padStart(2, "0")}-${String(b * 2 + 2).padStart(2, "0")}: brak danych`;
+            } else {
+              const avg = c.sum / c.count;
+              const t = hi > lo ? (avg - lo) / (hi - lo) : 0;
+              cell.style.background = heatColor(t);
+              cell.title = `${HEAT_DAYS[d]} ${String(b * 2).padStart(2, "0")}-${String(b * 2 + 2).padStart(2, "0")}\nŚr. koszt: $${avg.toFixed(2)} | ${c.count} ${c.count === 1 ? "sesja" : "sesji"}`;
+            }
+            gridEl.append(cell);
+          }
+        }
+        // wniosek
+        statsEl.replaceChildren();
+        const ins = heatmapInsight(hm);
+        if (ins) {
+          const w = document.createElement("div");
+          w.className = "analytics-insight";
+          w.textContent = `💡 Optymalny czas pracy: ${HEAT_DAYS[ins.best.day]} ${String(ins.best.block * 2).padStart(2, "0")}-${String(ins.best.block * 2 + 2).padStart(2, "0")} (śr. $${ins.best.avg.toFixed(2)}) — ok. ${Math.max(0, ins.savingsPct).toFixed(0)}% taniej niż średnia ($${ins.globalAvg.toFixed(2)}).`;
+          statsEl.append(w);
+        }
+      }
+
+      function drawPareto(rows) {
+        const canvas = document.getElementById("pareto-chart");
+        const cssH = parseInt(canvas.dataset.h || "260", 10);
+        const cssW = canvas.parentElement.clientWidth || 600;
+        const ctx = setupCanvas(canvas, cssW, cssH, { skipStyle: true });
+        ctx.clearRect(0, 0, cssW, cssH);
+        const padL = 40,
+          padR = 44,
+          padT = 18,
+          padB = 36;
+        const plotW = cssW - padL - padR;
+        const plotH = cssH - padT - padB;
+        const n = rows.length;
+        const maxCost = Math.max(...rows.map((r) => r.cost), 0.01);
+        const gap = 16;
+        const bw = Math.min(64, (plotW - gap * (n - 1)) / n);
+        const slotW = plotW / n;
+        // siatka + osie
+        ctx.strokeStyle = "#2e3249";
+        ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+        ctx.textBaseline = "middle";
+        for (let i = 0; i <= 4; i++) {
+          const y = padT + (i / 4) * plotH;
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(cssW - padR, y);
+          ctx.stroke();
+          ctx.fillStyle = "#fb923c";
+          ctx.textAlign = "right";
+          ctx.fillText(`${(maxCost * (1 - i / 4)).toFixed(1)}`, padL - 5, y);
+          ctx.fillStyle = "#60a5fa";
+          ctx.textAlign = "left";
+          ctx.fillText(`${100 - i * 25}%`, cssW - padR + 5, y);
+        }
+        // próg 80% (na prawej osi)
+        const y80 = padT + plotH - (80 / 100) * plotH;
+        ctx.strokeStyle = "#f87171";
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padL, y80);
+        ctx.lineTo(cssW - padR, y80);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // słupki
+        const cxOf = (i) => padL + i * slotW + slotW / 2;
+        rows.forEach((r, i) => {
+          const h = (r.cost / maxCost) * plotH;
+          const x = cxOf(i) - bw / 2;
+          const y = padT + plotH - h;
+          ctx.fillStyle = r.vital ? "#fb923c" : "#4b5168";
+          ctx.fillRect(x, y, bw, h);
+          ctx.fillStyle = "#7b80a0";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillText(r.source, cxOf(i), cssH - padB + 5);
+        });
+        // linia skumulowana (prawa oś %)
+        ctx.strokeStyle = "#60a5fa";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        rows.forEach((r, i) => {
+          const x = cxOf(i);
+          const y = padT + plotH - (r.cumPct / 100) * plotH;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.fillStyle = "#60a5fa";
+        rows.forEach((r, i) => {
+          const x = cxOf(i);
+          const y = padT + plotH - (r.cumPct / 100) * plotH;
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.lineWidth = 1;
+      }
+
+      function renderPareto(closedBugs, costPLNById) {
+        const statsEl = document.getElementById("pareto-stats");
+        const usable = (closedBugs || []).filter(
+          (t) => (costPLNById.get(t.id) || 0) > 0,
+        );
+        if (usable.length < ANALYTICS_MIN.pareto) {
+          const canvas = document.getElementById("pareto-chart");
+          const ctx = setupCanvas(
+            canvas,
+            canvas.parentElement.clientWidth || 600,
+            parseInt(canvas.dataset.h || "260", 10),
+            { skipStyle: true },
+          );
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          emptyState(
+            statsEl,
+            `Za mało danych — potrzeba min. ${ANALYTICS_MIN.pareto} zamkniętych bugów z kosztem (jest ${usable.length}).`,
+          );
+          return;
+        }
+        const entries = usable.map((t) => ({
+          source: parseBugSource(t),
+          cost: costPLNById.get(t.id) || 0,
+        }));
+        const { rows } = buildPareto(entries);
+        drawPareto(rows);
+        statsEl.replaceChildren();
+        const vital = rows.filter((r) => r.vital).map((r) => r.source);
+        const trivial = rows.filter((r) => !r.vital).map((r) => r.source);
+        const line = document.createElement("div");
+        line.className = "pareto-line";
+        line.textContent = `Vital few (≈80% kosztów): ${vital.join(" + ") || "—"}${trivial.length ? `  |  Trivial many: ${trivial.join(" + ")}` : ""}`;
+        statsEl.append(line);
+        const w = document.createElement("div");
+        w.className = "analytics-insight";
+        const dom = rows[0]?.source;
+        w.textContent = `🎯 80% kosztów bugów pochodzi z: ${vital.join(", ")}. ${PARETO_RECO[dom] || ""}`;
+        statsEl.append(w);
+      }
+
+      function renderBugCosts(closedBugs, openBugs, costUSDById, projectTotalUSD) {
+        const tbody = document.getElementById("bugcost-tbody");
+        const summaryEl = document.getElementById("bugcost-summary");
+        const barsEl = document.getElementById("bugcost-bars");
+        tbody.replaceChildren();
+        const bugs = [...(openBugs || []), ...(closedBugs || [])];
+        // estymata naprawy (USD) z opisu bug-taska
+        const estMidById = new Map();
+        for (const t of bugs) {
+          const est = parsePOEstimate(t.description || "");
+          if (est) estMidById.set(t.id, est.mid);
+        }
+        // koszt znalezienia: brak źródła danych w komentarzach → null (kolumna "—")
+        const findUSDById = new Map();
+        const rows = buildBugCostRows(
+          bugs,
+          costUSDById,
+          findUSDById,
+          estMidById,
+        );
+        if (rows.length < ANALYTICS_MIN.bugCost) {
+          emptyState(summaryEl, "Za mało danych — brak zamkniętych bugów z raportem kosztów.");
+          barsEl.replaceChildren();
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 6;
+          td.className = "empty-state";
+          td.textContent = "Brak danych o kosztach błędów.";
+          tr.append(td);
+          tbody.append(tr);
+          return;
+        }
+        const stats = bugCostStats(rows, projectTotalUSD);
+        // karta podsumowania
+        summaryEl.replaceChildren();
+        const cards = [
+          ["Łącznie", `$${stats.totalUSD.toFixed(2)}`, `${stats.pctOfBudget.toFixed(0)}% budżetu projektu`],
+          ["Śr. koszt błędu", `$${stats.avgUSD.toFixed(2)}`, "znalezienie + naprawa"],
+          [
+            "Najdroższy",
+            stats.max ? `$${stats.max.totalUSD.toFixed(2)}` : "—",
+            stats.max ? stats.max.task.content.slice(0, 28) : "",
+          ],
+          [
+            "Śr. błąd estymy",
+            stats.avgEstErr != null ? `${stats.avgEstErr.toFixed(0)}%` : "—",
+            "naprawy",
+          ],
+        ];
+        for (const [label, val, hint] of cards) {
+          const c = document.createElement("div");
+          c.className = "bug-stat";
+          const v = document.createElement("div");
+          v.className = "bug-stat-count";
+          v.textContent = val;
+          const l = document.createElement("div");
+          l.className = "bug-stat-label";
+          l.textContent = hint ? `${label} — ${hint}` : label;
+          c.append(v, l);
+          summaryEl.append(c);
+        }
+        // tabela
+        const sorted = [...rows].sort((a, b) => b.totalUSD - a.totalUSD);
+        for (const r of sorted) {
+          const tr = document.createElement("tr");
+          tr.append(bugNameCell(r.task, isClosedBug(r.task) ? "Zamknięty" : "Otwarty"));
+          tr.append(bugMutedCell(r.source));
+          tr.append(
+            bugMutedCell(r.findUSD != null ? `$${r.findUSD.toFixed(2)}` : "—", true),
+          );
+          tr.append(bugMutedCell(`$${r.fixUSD.toFixed(2)}`, true));
+          tr.append(bugMutedCell(`$${r.totalUSD.toFixed(2)}`, true));
+          tr.append(
+            bugMutedCell(
+              r.estErrPct != null ? `${r.estErrPct > 0 ? "+" : ""}${r.estErrPct.toFixed(0)}%` : "—",
+              true,
+            ),
+          );
+          tbody.append(tr);
+        }
+        // stacked bars: znalezienie vs naprawa
+        barsEl.replaceChildren();
+        const maxTotal = Math.max(...rows.map((r) => r.totalUSD), 0.01);
+        for (const r of sorted) {
+          const row = document.createElement("div");
+          row.className = "bugcost-barrow";
+          const name = document.createElement("div");
+          name.className = "bugcost-barname";
+          name.textContent = r.task.content.replace(/^BUG:\s*/i, "");
+          name.title = r.task.content;
+          const track = document.createElement("div");
+          track.className = "bugcost-bartrack";
+          const findW = (((r.findUSD || 0) / maxTotal) * 100).toFixed(1);
+          const fixW = ((r.fixUSD / maxTotal) * 100).toFixed(1);
+          if (r.findUSD) {
+            const f = document.createElement("div");
+            f.className = "bugcost-seg find";
+            f.style.width = `${findW}%`;
+            f.title = `Znalezienie: $${r.findUSD.toFixed(2)}`;
+            track.append(f);
+          }
+          const fx = document.createElement("div");
+          fx.className = "bugcost-seg fix";
+          fx.style.width = `${fixW}%`;
+          fx.title = `Naprawa: $${r.fixUSD.toFixed(2)}`;
+          track.append(fx);
+          const val = document.createElement("div");
+          val.className = "bugcost-barval";
+          val.textContent = `$${r.totalUSD.toFixed(2)}`;
+          row.append(name, track, val);
+          barsEl.append(row);
+        }
+        // wniosek
+        const w = document.createElement("div");
+        w.className = "analytics-insight";
+        if (stats.findTotal === 0)
+          w.textContent =
+            "💡 Koszt naprawy dominuje (brak danych o koszcie znalezienia). Dodaj komentarz „🐛 koszt znalezienia” w tasku macierzystym, by zobaczyć pełny obraz.";
+        else
+          w.textContent = `💡 Znalezienie to ${stats.findPct.toFixed(0)}% kosztu błędów, naprawa ${stats.fixPct.toFixed(0)}%.`;
+        summaryEl.append(w);
+      }
+
+      function renderAnalytics(items, closedBugs, openBugs) {
+        const costPLNById = new Map(items.map((i) => [i.task.id, i.totalCostPLN]));
+        const costUSDById = new Map(items.map((i) => [i.task.id, i.totalCostUSD]));
+        const projectTotalUSD = items.reduce((s, i) => s + i.totalCostUSD, 0);
+        renderHistogram(items);
+        renderHeatmap(items);
+        renderPareto(closedBugs, costPLNById);
+        renderBugCosts(closedBugs, openBugs, costUSDById, projectTotalUSD);
+        if (!analyticsBound) {
+          bindHistogramClick();
+          window.addEventListener("resize", () => {
+            renderHistogram(lastCostItems || []);
+            renderHeatmap(lastCostItems || []);
+            renderPareto(
+              lastClosedBugs || [],
+              new Map((lastCostItems || []).map((i) => [i.task.id, i.totalCostPLN])),
+            );
+          });
+          analyticsBound = true;
+        }
+      }
+
       function render({ costItems: items, bugTasks, closedBugs, backlogP1P2 }) {
         lastCostItems = items;
         renderSummary(items);
@@ -3829,6 +4826,8 @@
         renderPOAccuracy(items);
         renderVelocity(items, backlogP1P2);
         renderBugs(bugTasks, closedBugs, items);
+        lastClosedBugs = closedBugs;
+        renderAnalytics(items, closedBugs, bugTasks);
         document.getElementById("loading").style.display = "none";
         document.getElementById("analytics-content").style.display = "block";
         document.getElementById("footer").style.display = "block";
